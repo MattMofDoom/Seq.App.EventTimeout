@@ -12,6 +12,8 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>Log events to Seq if a matching event is not seen by a configured interval in a given timeframe.</Description>
     <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/MattMofDoom/Seq.App.EventTimeout</PackageProjectUrl>
+    <PackageIconUrl>https://github.com/MattMofDoom/Seq.App.EventTimeout/raw/master/Seq.App.EventTimeout/alert.ico</PackageIconUrl>
   </PropertyGroup>
 
   <ItemGroup>
