@@ -18,17 +18,27 @@ namespace Seq.App.EventTimeout
         DateTime _endTime;
         DateTime _lastTime;
         DateTime _lastLog;
+        DateTime _lastCheck; 
 
         TimeSpan _timeOut;
         TimeSpan _suppressionTime;
         string _textMatch;
+        bool _isTags;
         string[] _tags;
         string _alertMessage;
         string _alertDescription;
         string _timeoutLogLevel;
         bool _isAlert;
         Timer _timer;
-        
+        bool _isShowtime;
+        bool _includeApp;
+        bool _diagnostics;
+
+        [SeqAppSetting(
+            DisplayName = "Diagnostic logging",
+            HelpText = "Send extra diagnostic logging to the stream")]
+        public bool Diagnostics { get; set; }
+
         [SeqAppSetting(
             DisplayName = "Start Time",
             HelpText = "The time (H:mm:ss, 24 hour format) to start monitoring")]
@@ -76,55 +86,91 @@ namespace Seq.App.EventTimeout
             HelpText = "Tags for the event, separated by commas.")]
         public string Tags { get; set; }
 
+        [SeqAppSetting(
+            IsOptional = true,
+            DisplayName = "Include instance name in alert message",
+            HelpText = "Prepend the instance name to the alert message")]
+        public bool IncludeApp { get; set; }
+
         protected override void OnAttached()
         {
-            LogMessage("debug", "Convert Timeout {timeout} to TimeSpan ", Timeout, App.Title);
+            LogMessage("debug", "Check {AppName} diagnostic level {Diagnostics} ...", App.Title, Diagnostics);
+            _diagnostics = Diagnostics;
+
+            if (_diagnostics)
+                LogMessage("debug", "Check include appname {IncludeApp} ...", IncludeApp);
+            _includeApp = IncludeApp;
+            if (!_includeApp && _diagnostics)
+                LogMessage("debug", "App name {AppName} will not be included in alert message ...", App.Title);
+            else if (_diagnostics)
+                LogMessage("debug", "App name {AppName} will be included in alert message ...", App.Title);
+
+            if (_diagnostics)
+                LogMessage("debug", "Convert Timeout {timeout} to TimeSpan ...", Timeout);
             _timeOut = TimeSpan.FromSeconds(Timeout);
-            LogMessage("debug", "Parsed Timeout is {timeout} ", _timeOut.TotalSeconds);
+            if (_diagnostics)
+                LogMessage("debug", "Parsed Timeout is {timeout} ...", _timeOut.TotalSeconds);
 
-            LogMessage("debug", "Convert Suppression {suppression} to TimeSpan ", SuppressionTime, App.Title);
+            if (_diagnostics)
+                LogMessage("debug", "Convert Suppression {suppression} to TimeSpan ...", SuppressionTime);
             _suppressionTime = TimeSpan.FromSeconds(SuppressionTime);
-            LogMessage("debug", "Parsed Suppression is {timeout} ", _suppressionTime.TotalSeconds);
+            if (_diagnostics)
+                LogMessage("debug", "Parsed Suppression is {timeout} ...", _suppressionTime.TotalSeconds);
 
-            LogMessage("debug", "Convert Start Time {time} to UTC DateTime ", StartTime,App.Title);
+            if (_diagnostics)
+                LogMessage("debug", "Convert Start Time {time} to UTC DateTime ...", StartTime, App.Title);
             _startTime = DateTime.ParseExact(StartTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
-            LogMessage("debug", "Parsed UTC Start Time is {time} ", _startTime.ToShortTimeString(), App.Title);
+            if (_diagnostics)
+                LogMessage("debug", "Parsed UTC Start Time is {time} ...", _startTime.ToShortTimeString());
 
-            LogMessage("debug", "Convert End Time {time} to UTC DateTime ", EndTime, StartTime, App.Title);
+            if (_diagnostics)
+                LogMessage("debug", "Convert End Time {time} to UTC DateTime ...", EndTime, StartTime);
             _endTime = DateTime.ParseExact(EndTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
-            LogMessage("debug", "Parsed UTC End Time is {time} ", _endTime.ToShortTimeString(), App.Title);
+            if (_diagnostics)
+                LogMessage("debug", "Parsed UTC End Time is {time} ...", _endTime.ToShortTimeString());
 
-            LogMessage("debug", "Validate Text Match '{TextMatch}' ...", TextMatch, App.Title);
+            if (_diagnostics)
+                LogMessage("debug", "Validate Text Match '{TextMatch}' ...", TextMatch);
             _textMatch = string.IsNullOrWhiteSpace(TextMatch) ? "Match text" : TextMatch.Trim();
-            LogMessage("debug", "Text Match '{TextMatch}' will be used ...", _textMatch, App.Title);
+            if (_diagnostics)
+                LogMessage("debug", "Text Match '{TextMatch}' will be used ...", _textMatch);
 
-            LogMessage("debug", "Validate Alert Message '{AlertMessage}' ", AlertMessage, App.Title);
-            _alertMessage = string.IsNullOrWhiteSpace(AlertMessage) ? "An event timeout has occurred" : AlertMessage.Trim();
-            LogMessage("debug", "Alert Message '{AlertMessage}' will be used ...", _alertMessage, App.Title);
+            if (_diagnostics)
+                LogMessage("debug", "Validate Alert Message '{AlertMessage}' ...", AlertMessage);
+            _alertMessage = string.IsNullOrWhiteSpace(AlertMessage) ? "An event timeout has occurred!" : AlertMessage.Trim();
+            if (_diagnostics)
+                LogMessage("debug", "Alert Message '{AlertMessage}' will be used ...", _alertMessage);
 
-            LogMessage("debug", "Validate Alert Description '{AlertDescription}' ", AlertDescription, App.Title);
+            if (_diagnostics)
+                LogMessage("debug", "Validate Alert Description '{AlertDescription}' ...", AlertDescription);
             _alertDescription = string.IsNullOrWhiteSpace(AlertDescription) ? _alertMessage + " : Generated by Seq " + Host.BaseUri : AlertDescription.Trim();
-            LogMessage("debug", "Alert Description '{AlertDescription}' will be used ...", _alertDescription, App.Title);
+            if (_diagnostics)
+                LogMessage("debug", "Alert Description '{AlertDescription}' will be used ...", _alertDescription);
 
-            LogMessage("debug", "Validate Tags '{Tags}' ", Tags, App.Title);
+            if (_diagnostics)
+                LogMessage("debug", "Convert Tags '{Tags}' to array. May take a moment for the tags to show up in the feed ...", Tags);
             _tags = (Tags ?? "")
                 .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(t => t.Trim())
                 .ToArray();
-            LogMessage("debug", "Tags '{Tags}' will be used ", string.Join(",",_tags), App.Title);
+            if (_tags.Length > 0)
+                _isTags = true;
 
             if (string.IsNullOrWhiteSpace(TimeoutLogLevel))
             {
                 TimeoutLogLevel = "Error";
             }
             _timeoutLogLevel = TimeoutLogLevel.Trim().ToLowerInvariant();
-            LogMessage("debug", "Log level {loglevel} will be used for timeouts on {Instance}", _timeoutLogLevel, App.Title);
+            if (_diagnostics)
+                LogMessage("debug", "Log level {loglevel} will be used for timeouts on {Instance} ...", _timeoutLogLevel);
 
-            LogMessage("debug", "Starting timer ...");
+            if (_diagnostics)
+                LogMessage("debug", "Starting timer ...");
             _timer = new Timer(1000);
             _timer.Elapsed += TimerOnElapsed;
             _timer.Start();
-            LogMessage("debug", "Timer started ...");
+            if (_diagnostics)
+                LogMessage("debug", "Timer started ...");
         }
 
 
@@ -141,66 +187,96 @@ namespace Seq.App.EventTimeout
 
             if (timeNow >= _startTime && timeNow < _endTime)
             {
-                TimeSpan difference = timeNow - _startTime;
+                if (!_isShowtime)
+                {
+                    LogMessage("debug", "Start Time {Time} reached, monitoring for {MatchText} within {Timeout} seconds ...", _startTime.ToShortTimeString(), _textMatch, _timeOut.TotalSeconds);
+                    _isShowtime = true;
+                    _lastCheck = timeNow;
+                }
+
+                TimeSpan difference = timeNow - _lastCheck;
                 if (difference.TotalSeconds > _timeOut.TotalSeconds && _matched == 0)
                 {
-                    TimeSpan suppressDiff = _lastLog - timeNow;
+                    TimeSpan suppressDiff = timeNow - _lastLog;
                     if (_isAlert && suppressDiff.TotalSeconds < _suppressionTime.TotalSeconds)
                         return;
 
                     //Log event
-                    LogMessage(_timeoutLogLevel, "{Message}", _alertMessage, _alertDescription, _tags, _textMatch, App.Title);
+                    LogMessage(_timeoutLogLevel, "{Message} - {Description}", _alertMessage, _alertDescription, _tags);
                     _lastLog = timeNow;
                     _isAlert = true;
                 }
             }
             else if (DateTime.UtcNow < _startTime || DateTime.UtcNow >= _endTime)
             {
+                if (_isShowtime)
+                    LogMessage("debug", "End Time {Time} reached, no longer monitoring for {MatchText} ...", _endTime.ToShortTimeString(), _textMatch);
+
                 //Reset the match counters
                 _lastTime = timeNow;
                 _lastLog = timeNow;
+                _lastCheck = timeNow;
                 _matched = 0;
                 _isAlert = false;
+                _isShowtime = false;
             }
+            
         }
 
         public void On(Event<LogEventData> evt)
         {
             if (evt == null) throw new ArgumentNullException(nameof(evt));
 
-            if (DateTime.UtcNow >= _startTime && DateTime.UtcNow < _endTime)
+            DateTime timeNow = DateTime.UtcNow;
+            if (_matched == 0 && timeNow >= _startTime && timeNow < _endTime)
             {
-                if (evt.Data.RenderedMessage.Contains(TextMatch))
+                if (evt.Data.RenderedMessage.IndexOf(TextMatch,StringComparison.CurrentCultureIgnoreCase) >= 0)
                 {
                     _matched++;
-                    if (_matched == 1)
-                        LogMessage("debug", "Successfully matched {TextMatch}! Further matches will not be logged.", _textMatch, _tags, App.Title);
+                    _lastCheck = timeNow;
+                    LogMessage("debug", "Successfully matched {TextMatch}! Further matches will not be logged ...", _textMatch);
                 }
             }
         }
 
         private void LogMessage(string level, string message, params object[] args)
         {
+            List<object> logArgsList = args.ToList();
+
+            if (_includeApp)
+            {
+                message = "[{AppName}] -" + message;
+                logArgsList.Insert(0, App.Title);
+            }
+
+            if (_isTags)
+            {
+                message = message + " - [Tags: {Tags}]";
+                logArgsList.Add(_tags);
+            }
+
+            object[] logArgs = logArgsList.ToArray();
+
             var firstChar = level[0];
             switch (firstChar)
             {
                 case 'v':
-                    Log.Verbose(message, args);
+                    Log.Verbose(message, logArgs);
                     break;
                 case 'd':
-                    Log.Debug(message, args);
+                    Log.Debug(message, logArgs);
                     break;
                 case 'i':
-                    Log.Information(message, args);
+                    Log.Information(message, logArgs);
                     break;
                 case 'w':
-                    Log.Warning(message, args);
+                    Log.Warning(message, logArgs);
                     break;
                 case 'e':
-                    Log.Error(message, args);
+                    Log.Error(message, logArgs);
                     break;
                 case 'f':
-                    Log.Fatal(message, args);
+                    Log.Fatal(message, logArgs);
                     break;
             }
         }
