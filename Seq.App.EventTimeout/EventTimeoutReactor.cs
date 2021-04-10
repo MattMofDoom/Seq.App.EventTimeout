@@ -18,7 +18,8 @@ namespace Seq.App.EventTimeout
         DateTime _endTime;
         DateTime _lastTime;
         DateTime _lastLog;
-        DateTime _lastCheck; 
+        DateTime _lastCheck;
+        List<DayOfWeek> _daysOfWeek;
 
         TimeSpan _timeOut;
         TimeSpan _suppressionTime;
@@ -33,7 +34,7 @@ namespace Seq.App.EventTimeout
         bool _isShowtime;
         bool _includeApp;
         bool _diagnostics;
-
+        
         [SeqAppSetting(
             DisplayName = "Diagnostic logging",
             HelpText = "Send extra diagnostic logging to the stream")]
@@ -53,6 +54,11 @@ namespace Seq.App.EventTimeout
             DisplayName = "Timeout Interval (seconds)",
             HelpText = "Time period in which a matching log entry must be seen. After this, an alert will be raised")]
         public int Timeout { get; set; }
+
+        [SeqAppSetting(
+            DisplayName = "Days of Week",
+            HelpText = "Comma-delimited - Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday")]
+        public string DaysOfWeek { get; set; }
 
         [SeqAppSetting(
             DisplayName = "Suppression Interval (seconds)",
@@ -130,6 +136,30 @@ namespace Seq.App.EventTimeout
                 LogMessage("debug", "Parsed UTC End Time is {time} ...", _endTime.ToShortTimeString());
 
             if (_diagnostics)
+                LogMessage("debug", "Convert Days of Week {daysofweek} to UTC Days of Week ...", DaysOfWeek);
+            if (string.IsNullOrEmpty(DaysOfWeek))
+                _daysOfWeek = new List<DayOfWeek>() { DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday };
+            else
+            {
+                string[] days = DaysOfWeek.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToArray();
+                if (days.Length > 0)
+                    foreach (string day in days)
+                    {
+                        if (DateTime.ParseExact(StartTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).DayOfWeek < _startTime.DayOfWeek)
+                            if ((int)(DayOfWeek)Enum.Parse(typeof(DayOfWeek), day) < 0)
+                                _daysOfWeek.Add(DayOfWeek.Saturday);
+                            else
+                                _daysOfWeek.Add((DayOfWeek)((int)(DayOfWeek)Enum.Parse(typeof(DayOfWeek), day) - 1));
+                        else
+                            _daysOfWeek.Add((DayOfWeek)Enum.Parse(typeof(DayOfWeek), day));
+                    }
+                else
+                    _daysOfWeek = new List<DayOfWeek>() { DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday };
+            }
+            if (_diagnostics)
+                LogMessage("debug", "UTC Days of Week {daysofweek} will be used ...", _daysOfWeek.ToArray());
+            
+            if (_diagnostics)
                 LogMessage("debug", "Validate Text Match '{TextMatch}' ...", TextMatch);
             _textMatch = string.IsNullOrWhiteSpace(TextMatch) ? "Match text" : TextMatch.Trim();
             if (_diagnostics)
@@ -183,13 +213,15 @@ namespace Seq.App.EventTimeout
                 //Account for day rollover
                 _startTime = DateTime.ParseExact(StartTime, "H:mm:ss", null, System.Globalization.DateTimeStyles.None).ToUniversalTime();
                 _endTime = DateTime.ParseExact(EndTime, "H:mm:ss", null, System.Globalization.DateTimeStyles.None).ToUniversalTime();
+                if (_diagnostics)
+                    LogMessage("debug", "UTC Day Rollover {timeNow) to {lastTime}, UTC day is now {DayOfWeek}, Start Time {start time}, End Time {end time}", timeNow.Day, _lastTime.Day, timeNow.DayOfWeek, _startTime.ToShortTimeString(), _endTime.ToShortTimeString());
             }
 
-            if (timeNow >= _startTime && timeNow < _endTime)
+            if (timeNow >= _startTime && timeNow < _endTime && _daysOfWeek.Contains(_startTime.DayOfWeek))
             {
                 if (!_isShowtime)
                 {
-                    LogMessage("debug", "Start Time {Time} reached, monitoring for {MatchText} within {Timeout} seconds ...", _startTime.ToShortTimeString(), _textMatch, _timeOut.TotalSeconds);
+                    LogMessage("debug", "Start Time {Time} reached for UTC day {DayOfWeek}, monitoring for {MatchText} within {Timeout} seconds ...", _startTime.ToShortTimeString(), _startTime.DayOfWeek, _textMatch, _timeOut.TotalSeconds);
                     _isShowtime = true;
                     _lastCheck = timeNow;
                 }
@@ -210,7 +242,7 @@ namespace Seq.App.EventTimeout
             else if (DateTime.UtcNow < _startTime || DateTime.UtcNow >= _endTime)
             {
                 if (_isShowtime)
-                    LogMessage("debug", "End Time {Time} reached, no longer monitoring for {MatchText} ...", _endTime.ToShortTimeString(), _textMatch);
+                    LogMessage("debug", "End Time {Time} reached for UTC day {DayOfWeek}, no longer monitoring for {MatchText} ...", _endTime.ToShortTimeString(), _startTime.DayOfWeek, _textMatch);
 
                 //Reset the match counters
                 _lastTime = timeNow;
@@ -228,7 +260,7 @@ namespace Seq.App.EventTimeout
             if (evt == null) throw new ArgumentNullException(nameof(evt));
 
             DateTime timeNow = DateTime.UtcNow;
-            if (_matched == 0 && timeNow >= _startTime && timeNow < _endTime)
+            if (_matched == 0 && timeNow >= _startTime && timeNow < _endTime && _daysOfWeek.Contains(_startTime.DayOfWeek))
             {
                 if (evt.Data.RenderedMessage.IndexOf(TextMatch,StringComparison.CurrentCultureIgnoreCase) >= 0)
                 {
