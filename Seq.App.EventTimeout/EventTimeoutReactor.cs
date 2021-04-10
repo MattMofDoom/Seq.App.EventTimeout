@@ -57,7 +57,8 @@ namespace Seq.App.EventTimeout
 
         [SeqAppSetting(
             DisplayName = "Days of Week",
-            HelpText = "Comma-delimited - Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday")]
+            HelpText = "Comma-delimited - Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday",
+            IsOptional = true)]
         public string DaysOfWeek { get; set; }
 
         [SeqAppSetting(
@@ -142,9 +143,12 @@ namespace Seq.App.EventTimeout
             else
             {
                 string[] days = DaysOfWeek.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToArray();
+                if (_diagnostics)
+                    LogMessage("debug", "Resulting array {daysofweek}, convert to UTC Days of Week ...", days);
                 if (days.Length > 0)
+                {
+                    _daysOfWeek = new List<DayOfWeek>();
                     foreach (string day in days)
-                    {
                         if (DateTime.ParseExact(StartTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).DayOfWeek < _startTime.DayOfWeek)
                             if ((int)(DayOfWeek)Enum.Parse(typeof(DayOfWeek), day) < 0)
                                 _daysOfWeek.Add(DayOfWeek.Saturday);
@@ -152,7 +156,7 @@ namespace Seq.App.EventTimeout
                                 _daysOfWeek.Add((DayOfWeek)((int)(DayOfWeek)Enum.Parse(typeof(DayOfWeek), day) - 1));
                         else
                             _daysOfWeek.Add((DayOfWeek)Enum.Parse(typeof(DayOfWeek), day));
-                    }
+                }
                 else
                     _daysOfWeek = new List<DayOfWeek>() { DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday };
             }
