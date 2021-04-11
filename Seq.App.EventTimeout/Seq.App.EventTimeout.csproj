@@ -6,9 +6,9 @@
     <ApplicationIcon>alert.ico</ApplicationIcon>
     <Authors>Matt Marlor</Authors>
     <Copyright></Copyright>
-    <AssemblyVersion>1.0.21.0</AssemblyVersion>
-    <FileVersion>1.0.21.0</FileVersion>
-    <Version>1.0.21</Version>
+    <AssemblyVersion>1.0.25.0</AssemblyVersion>
+    <FileVersion>1.0.25.0</FileVersion>
+    <Version>1.0.25</Version>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>Log events to Seq if a matching event is not seen by a configured interval in a given timeframe.</Description>
     <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
@@ -20,6 +20,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Flurl" Version="3.0.1" />
+    <PackageReference Include="Flurl.Http" Version="3.0.1" />
     <PackageReference Include="Seq.Apps" Version="5.1.0" />
   </ItemGroup>
 

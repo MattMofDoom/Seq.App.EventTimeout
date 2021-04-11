@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,8 +25,6 @@ namespace Seq.App.EventTimeout
         TimeSpan _timeOut;
         TimeSpan _suppressionTime;
         string _textMatch;
-        bool _isTags;
-        string[] _tags;
         string _alertMessage;
         string _alertDescription;
         string _timeoutLogLevel;
@@ -34,7 +33,10 @@ namespace Seq.App.EventTimeout
         bool _isShowtime;
         bool _includeApp;
         bool _diagnostics;
-        
+
+        bool _isTags;
+        string[] _tags;
+
         [SeqAppSetting(
             DisplayName = "Diagnostic logging",
             HelpText = "Send extra diagnostic logging to the stream")]
@@ -126,6 +128,9 @@ namespace Seq.App.EventTimeout
             if (_diagnostics)
                 LogMessage("debug", "Convert Start Time {time} to UTC DateTime ...", StartTime, App.Title);
             _startTime = DateTime.ParseExact(StartTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
+            if (_startTime.Day < DateTime.UtcNow.Day)
+                _startTime = _startTime.AddDays(1);
+
             if (_diagnostics)
                 LogMessage("debug", "Parsed UTC Start Time is {time}, UTC Day {dayofweek} ...", _startTime.ToShortTimeString(), _startTime.DayOfWeek);
 
@@ -133,7 +138,11 @@ namespace Seq.App.EventTimeout
                 LogMessage("debug", "Convert End Time {time} to UTC DateTime ...", EndTime, StartTime);
             _endTime = DateTime.ParseExact(EndTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
             if (_endTime <= _startTime)
-                _endTime = _endTime.AddDays(1);
+                if (_endTime.AddDays(1) < _startTime)
+                    _endTime = _endTime.AddDays(2);
+                else
+                    _endTime = _endTime.AddDays(1);
+
 
             if (_diagnostics)
                 LogMessage("debug", "Parsed UTC End Time is {time}, UTC Day {dayofweek} ...", _endTime.ToShortTimeString(), _endTime.DayOfWeek);
@@ -207,6 +216,7 @@ namespace Seq.App.EventTimeout
             _timer.Start();
             if (_diagnostics)
                 LogMessage("debug", "Timer started ...");
+
         }
 
 
@@ -214,33 +224,25 @@ namespace Seq.App.EventTimeout
         {
             DateTime timeNow = DateTime.UtcNow;
 
-            if (timeNow.Day != _lastTime.Day)
+            //Day rollover not allowed until we're outside showtime
+            if (timeNow.Day != _lastTime.Day && !_isShowtime)
             {
                 //Account for day rollover
                 _startTime = DateTime.ParseExact(StartTime, "H:mm:ss", null, System.Globalization.DateTimeStyles.None).ToUniversalTime();
+                if (_startTime.Day < timeNow.Day)
+                    _startTime = _startTime.AddDays(1);
 
-                //Don't allow end time rollover if we haven't reached the current end time
-                if (_endTime.Day != timeNow.Day)
-                {
-                    _endTime = DateTime.ParseExact(EndTime, "H:mm:ss", null, System.Globalization.DateTimeStyles.None).ToUniversalTime();
-                    if (_endTime <= _startTime)
+                _endTime = DateTime.ParseExact(EndTime, "H:mm:ss", null, System.Globalization.DateTimeStyles.None).ToUniversalTime();
+                if (_endTime <= _startTime)
+                    if (_endTime.AddDays(1) < _startTime)
+                        _endTime = _endTime.AddDays(2);
+                    else
                         _endTime = _endTime.AddDays(1);
-                }
 
                 if (_diagnostics)
                     LogMessage("debug", "UTC Day Rollover {Yesterday} to {Today}, UTC day is now {DayOfWeek}, UTC Start Time {StartTime} (UTC Day {StartDayOfWeek}), UTC End Time {EndTime} (UTC Day {EndDayOfWeek})...", _lastTime.Day, timeNow.Day, timeNow.DayOfWeek, _startTime.ToShortTimeString(), _startTime.DayOfWeek, _endTime.ToShortTimeString(), _endTime.DayOfWeek);
 
                 _lastTime = timeNow;
-            }
-
-            if (_startTime >= _endTime)
-            {
-                //Make sure that end time is in the future
-                _endTime = DateTime.ParseExact(EndTime, "H:mm:ss", null, System.Globalization.DateTimeStyles.None).ToUniversalTime();
-                if (_endTime <= _startTime)
-                    _endTime = _endTime.AddDays(1);
-                if (_diagnostics)
-                    LogMessage("debug", "UTC End Time correction, UTC End Time is now {EndTime} (UTC Day {EndDayOfWeek})", _endTime.ToShortTimeString(), _endTime.DayOfWeek);
             }
 
             if (timeNow >= _startTime && timeNow < _endTime && _daysOfWeek.Contains(_startTime.DayOfWeek))
@@ -259,8 +261,8 @@ namespace Seq.App.EventTimeout
                     if (_isAlert && suppressDiff.TotalSeconds < _suppressionTime.TotalSeconds)
                         return;
 
-                    //Log event
-                    LogMessage(_timeoutLogLevel, "{Message} : {Description}", _alertMessage, _alertDescription, _tags);
+                    //Log event                    
+                    LogMessage(_timeoutLogLevel, "{Message} : {Description}", _alertMessage, _alertDescription);
                     _lastLog = timeNow;
                     _isAlert = true;
                 }
