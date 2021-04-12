@@ -17,7 +17,6 @@ namespace Seq.App.EventTimeout
         int _matched;
         DateTime _startTime;
         DateTime _endTime;
-        DateTime _lastTime;
         DateTime _lastLog;
         DateTime _lastCheck;
         List<DayOfWeek> _daysOfWeek;
@@ -128,7 +127,7 @@ namespace Seq.App.EventTimeout
             if (_diagnostics)
                 LogMessage("debug", "Convert Start Time {time} to UTC DateTime ...", StartTime, App.Title);
             _startTime = DateTime.ParseExact(StartTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
-            if (_startTime.Day < DateTime.UtcNow.Day)
+            if (_startTime < DateTime.UtcNow)
                 _startTime = _startTime.AddDays(1);
 
             if (_diagnostics)
@@ -207,8 +206,6 @@ namespace Seq.App.EventTimeout
             if (_diagnostics)
                 LogMessage("debug", "Log level {loglevel} will be used for timeouts on {Instance} ...", false, _timeoutLogLevel, App.Title);
 
-            //Force a UTC day rollover at the start
-            _lastTime = DateTime.UtcNow.AddDays(-1);
             if (_diagnostics)
                 LogMessage("debug", "Starting timer ...");
             _timer = new Timer(1000);
@@ -223,33 +220,12 @@ namespace Seq.App.EventTimeout
         private void TimerOnElapsed(object sender, ElapsedEventArgs e)
         {
             DateTime timeNow = DateTime.UtcNow;
-
-            //Day rollover not allowed until we're outside showtime
-            if (timeNow.Day != _lastTime.Day && !_isShowtime)
-            {
-                //Account for day rollover
-                _startTime = DateTime.ParseExact(StartTime, "H:mm:ss", null, System.Globalization.DateTimeStyles.None).ToUniversalTime();
-                if (_startTime.Day < timeNow.Day)
-                    _startTime = _startTime.AddDays(1);
-
-                _endTime = DateTime.ParseExact(EndTime, "H:mm:ss", null, System.Globalization.DateTimeStyles.None).ToUniversalTime();
-                if (_endTime <= _startTime)
-                    if (_endTime.AddDays(1) < _startTime)
-                        _endTime = _endTime.AddDays(2);
-                    else
-                        _endTime = _endTime.AddDays(1);
-
-                if (_diagnostics)
-                    LogMessage("debug", "UTC Day Rollover {Yesterday} to {Today}, UTC day is now {DayOfWeek}, UTC Start Time {StartTime} (UTC Day {StartDayOfWeek}), UTC End Time {EndTime} (UTC Day {EndDayOfWeek})...", _lastTime.Day, timeNow.Day, timeNow.DayOfWeek, _startTime.ToShortTimeString(), _startTime.DayOfWeek, _endTime.ToShortTimeString(), _endTime.DayOfWeek);
-
-                _lastTime = timeNow;
-            }
-
+                        
             if (timeNow >= _startTime && timeNow < _endTime && _daysOfWeek.Contains(_startTime.DayOfWeek))
             {
                 if (!_isShowtime)
                 {
-                    LogMessage("debug", "UTC Start Time {Time} reached for UTC day {DayOfWeek}, monitoring for {MatchText} within {Timeout} seconds ...", _startTime.ToShortTimeString(), _startTime.DayOfWeek, _textMatch, _timeOut.TotalSeconds);
+                    LogMessage("debug", "UTC Start Time {Time} ({DayOfWeek}), monitoring for {MatchText} within {Timeout} seconds, until UTC End time {EndTime} ({EndDayOfWeek}) ...", _startTime.ToShortTimeString(), _startTime.DayOfWeek, _textMatch, _timeOut.TotalSeconds, _endTime.ToShortTimeString(), _endTime.DayOfWeek);
                     _isShowtime = true;
                     _lastCheck = timeNow;
                 }
@@ -267,20 +243,38 @@ namespace Seq.App.EventTimeout
                     _isAlert = true;
                 }
             }
-            else if (DateTime.UtcNow < _startTime || DateTime.UtcNow >= _endTime)
+            else if (timeNow < _startTime || timeNow >= _endTime)
             {
                 if (_isShowtime)
-                    LogMessage("debug", "UTC End Time {Time} reached for UTC day {DayOfWeek}, no longer monitoring for {MatchText} ...", _endTime.ToShortTimeString(), _startTime.DayOfWeek, _textMatch);
+                    LogMessage("debug", "UTC End Time {Time} ({DayOfWeek}), no longer monitoring for {MatchText} ...", _endTime.ToShortTimeString(), _endTime.DayOfWeek, _textMatch);
 
                 //Reset the match counters
-                _lastTime = timeNow;
                 _lastLog = timeNow;
                 _lastCheck = timeNow;
                 _matched = 0;
                 _isAlert = false;
                 _isShowtime = false;
-            }
+            } 
             
+            if (!_isShowtime && _startTime < timeNow)
+            {
+                //Day rollover, we need to ensure the next start and end is in the future
+                _startTime = DateTime.ParseExact(StartTime, "H:mm:ss", null, System.Globalization.DateTimeStyles.None).ToUniversalTime();
+                if (_startTime < timeNow)
+                    _startTime = _startTime.AddDays(1);
+
+                _endTime = DateTime.ParseExact(EndTime, "H:mm:ss", null, System.Globalization.DateTimeStyles.None).ToUniversalTime();
+                if (_endTime <= _startTime)
+                    if (_endTime.AddDays(1) < _startTime)
+                        _endTime = _endTime.AddDays(2);
+                    else
+                        _endTime = _endTime.AddDays(1);
+
+                if (_diagnostics)
+                    LogMessage("debug", "UTC Day Rollover, Next UTC Start Time {StartTime} ({StartDayOfWeek}), UTC End Time {EndTime} ({EndDayOfWeek})...", _startTime.ToShortTimeString(), _startTime.DayOfWeek, _endTime.ToShortTimeString(), _endTime.DayOfWeek);
+            }
+
+
         }
 
         public void On(Event<LogEventData> evt)

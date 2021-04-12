@@ -6,17 +6,19 @@
     <ApplicationIcon>alert.ico</ApplicationIcon>
     <Authors>Matt Marlor</Authors>
     <Copyright></Copyright>
-    <AssemblyVersion>1.0.25.0</AssemblyVersion>
-    <FileVersion>1.0.25.0</FileVersion>
-    <Version>1.0.25</Version>
+    <AssemblyVersion>1.0.28.0</AssemblyVersion>
+    <FileVersion>1.0.28.0</FileVersion>
+    <Version>1.0.28</Version>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>Log events to Seq if a matching event is not seen by a configured interval in a given timeframe.</Description>
-    <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
+    <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/MattMofDoom/Seq.App.EventTimeout</PackageProjectUrl>
-    <PackageIconUrl>https://github.com/MattMofDoom/Seq.App.EventTimeout/raw/master/Seq.App.EventTimeout/alert.ico</PackageIconUrl>
+    <PackageIconUrl></PackageIconUrl>
     <RepositoryUrl>https://github.com/MattMofDoom/Seq.App.EventTimeout</RepositoryUrl>
     <RepositoryType>Github</RepositoryType>
     <PackageTags>seq-app</PackageTags>
+    <PackageIcon>alert.png</PackageIcon>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,6 +30,14 @@
   <ItemGroup>
     <None Update="LICENSE">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="alert.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
     </None>
   </ItemGroup>
 
