@@ -156,14 +156,24 @@ namespace Seq.App.EventTimeout
                 if (days.Length > 0)
                 {
                     _daysOfWeek = new List<DayOfWeek>();
+                    bool crossesUtcDay = false;
+
+                    if ((int)_startTime.DayOfWeek < (int)_endTime.DayOfWeek || ((int)_startTime.DayOfWeek == 6 && (int)_endTime.DayOfWeek == 0))
+                        crossesUtcDay = true;
+
                     foreach (string day in days)
-                        if (_startTime.DayOfWeek < DateTime.ParseExact(StartTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).DayOfWeek)
-                            if ((int)(DayOfWeek)Enum.Parse(typeof(DayOfWeek), day) - 1 < 0)
-                                _daysOfWeek.Add(DayOfWeek.Saturday);
-                            else
-                                _daysOfWeek.Add((DayOfWeek)((int)(DayOfWeek)Enum.Parse(typeof(DayOfWeek), day) - 1));
+                    {
+                        DayOfWeek dow;
+
+                        if (!crossesUtcDay)
+                            dow = (DayOfWeek)((int)(DayOfWeek)Enum.Parse(typeof(DayOfWeek), day));
+                        else if ((int)(DayOfWeek)Enum.Parse(typeof(DayOfWeek), day) - 1 < 0)
+                            dow = DayOfWeek.Saturday;
                         else
-                            _daysOfWeek.Add((DayOfWeek)Enum.Parse(typeof(DayOfWeek), day));
+                            dow = (DayOfWeek)((int)(DayOfWeek)Enum.Parse(typeof(DayOfWeek), day) - 1);
+
+                        _daysOfWeek.Add(dow);
+                    }
                 }
                 else
                     _daysOfWeek = new List<DayOfWeek>() { DayOfWeek.Sunday, DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday };
