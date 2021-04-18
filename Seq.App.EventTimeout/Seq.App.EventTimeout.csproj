@@ -6,9 +6,9 @@
     <ApplicationIcon>alert.ico</ApplicationIcon>
     <Authors>Matt Marlor</Authors>
     <Copyright></Copyright>
-    <AssemblyVersion>1.0.57.0</AssemblyVersion>
-    <FileVersion>1.0.57.0</FileVersion>
-    <Version>1.0.57</Version>
+    <AssemblyVersion>1.0.69.0</AssemblyVersion>
+    <FileVersion>1.0.69.0</FileVersion>
+    <Version>1.0.69</Version>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>Log events to Seq if a matching event is not seen by a configured interval in a given timeframe.</Description>
     <PackageLicenseUrl></PackageLicenseUrl>
@@ -19,6 +19,7 @@
     <PackageTags>seq-app</PackageTags>
     <PackageIcon>alert.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReleaseNotes>Refine AbstractAPI Holidays usage</PackageReleaseNotes>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">

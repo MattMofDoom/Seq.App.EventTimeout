@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using Seq.Apps;
@@ -20,10 +21,10 @@ namespace Seq.App.EventTimeout
         DateTime _endTime;
         DateTime _lastLog;
         DateTime _lastCheck;
-        DateTime _localDate;
         DateTime _lastDay;
-        
-        bool _isHolidayError;
+
+        bool _isUpdating;
+        DateTime _lastUpdate;
         DateTime _lastError;
         int _errorCount;
 
@@ -37,7 +38,8 @@ namespace Seq.App.EventTimeout
         string _alertDescription;
         string _timeoutLogLevel;
         bool _isAlert;
-        Timer _timer;
+        System.Timers.Timer _timer;
+        const int _retryCount = 10;
         bool _isShowtime;
         bool _includeApp;
         bool _diagnostics;
@@ -198,7 +200,8 @@ namespace Seq.App.EventTimeout
         [SeqAppSetting(
             DisplayName = "Proxy password",
             HelpText = "Username for proxy authentication",
-            IsOptional = true)]
+            IsOptional = true,
+            InputType = SettingInputType.Password)]
         public string ProxyPass { get; set; }
 
         protected override void OnAttached()
@@ -214,7 +217,7 @@ namespace Seq.App.EventTimeout
             else if (_diagnostics)
                 LogMessage(false, "debug", "App name {AppName} will be included in alert message ...", App.Title);
 
-            LogMessage(false, "debug", "Use Holidays API {UseHolidays}, Country {Country}, API key {IsEmpty} ...", UseHolidays, Country, !string.IsNullOrEmpty(ApiKey));
+            LogMessage(false, "debug", "Use Holidays API {UseHolidays}, Country {Country}, Has API key {IsEmpty} ...", UseHolidays, Country, !string.IsNullOrEmpty(ApiKey));
             if (UseHolidays && !string.IsNullOrEmpty(Country) && !string.IsNullOrEmpty(ApiKey))
             {
                 if (_diagnostics)
@@ -247,68 +250,33 @@ namespace Seq.App.EventTimeout
                     }
 
                     if (_diagnostics)
-                        LogMessage(false, "debug", "Use Holidays API {UseHolidays}, Country {Country}, Use Proxy {UseProxy}, Proxy Address {Proxy}, BypassLocal {BypassLocal}, Authentication {Authentication} ...", _useHolidays, _country,
+                        LogMessage(false, "debug", "Holidays API Enabled: {UseHolidays}, Country {Country}, Use Proxy {UseProxy}, Proxy Address {Proxy}, BypassLocal {BypassLocal}, Authentication {Authentication} ...", _useHolidays, _country,
                             _useProxy, _proxy, _bypassLocal, !string.IsNullOrEmpty(ProxyUser) && !string.IsNullOrEmpty(ProxyPass));
                     WebClient.setFlurlConfig(App.Title, _useProxy, _proxy, _proxyUser, _proxyPass, _bypassLocal, _localAddresses);
                 }
                 else
                 {
                     _useHolidays = false;
-                    LogMessage(false, "debug", "Could not parse country {CountryCode} to valid region, Use Holidays API {UseHolidays} ...", _country, _useHolidays);
+                    LogMessage(false, "debug", "Holidays API Enabled: {UseHolidays}, Could not parse country {CountryCode} to valid region ...", _useHolidays, _country);
                 }
+            } else if (UseHolidays)
+            {
+                _useHolidays = false;
+                LogMessage(false, "debug", "Holidays API Enabled: {UseHolidays}, One or more parameters not set", _useHolidays);
             }
 
-            _localDate = DateTime.Now;
-            _lastDay = _localDate.AddDays(-1);
-            _isHolidayError = false;
-            _lastError = _localDate.AddDays(-1);
+
+            _lastDay = DateTime.Today.AddDays(-1);
+            _lastError = DateTime.Now.AddDays(-1);
+            _lastUpdate = DateTime.Now.AddDays(-1);
             _errorCount = 0;
             _testDate = TestDate;
+            _holidays = new List<AbstractApiHolidays>();
 
-            if (_useHolidays)
-            {                
-                if (!string.IsNullOrEmpty(_testDate))
-                    _localDate = DateTime.ParseExact(_testDate, "yyyy-M-d", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None);                
+            retrieveHolidays(DateTime.Today, DateTime.UtcNow);
 
-                if (_diagnostics)
-                    LogMessage(false, "debug", "Retrieve holidays for {Date} ...", _localDate.ToShortDateString());
-                string holidayUrl = WebClient.getUrl(_apiKey, _country, _localDate);
-                if (_diagnostics)
-                    LogMessage(false, "debug", "URL used is {url} ...", holidayUrl);
-                try
-                {
-                    List<AbstractApiHolidays> result = WebClient.getHolidays(_apiKey, _country, _localDate).Result;
-                    _holidays = validateHolidays(result);
-                    _lastDay = _localDate;
-
-                    if (_diagnostics)
-                    {
-                        if (!string.IsNullOrEmpty(_testDate))
-                        {
-                            LogMessage(false, "debug", "Test date {testDate} used, raw holidays retrieved {testCount} ...", _testDate, result.Count);
-                            foreach (AbstractApiHolidays holiday in result)
-                                LogMessage(false, "debug", "Holiday Name: {Name}, Local Name {LocalName}, Start {LocalStart}, Start UTC {Start}, End UTC {End}, Type {Type}, Location {Location}, Locations {Locations} ...",
-                                    holiday.name, holiday.name_local, holiday.localStart, holiday.utcStart, holiday.utcEnd, holiday.type, holiday.location, holiday.locations.ToArray());
-                        }
-
-                        LogMessage(false, "debug", "Holidays retrieved and validated {holidayCount} ...", _holidays.Count);
-                        foreach (AbstractApiHolidays holiday in _holidays)
-                            LogMessage(false, "debug", "Holiday Name: {Name}, Local Name {LocalName}, Start {LocalStart}, Start UTC {Start}, End UTC {End}, Type {Type}, Location {Location}, Locations {Locations} ...",
-                                holiday.name, holiday.name_local, holiday.localStart, holiday.utcStart, holiday.utcEnd, holiday.type, holiday.location, holiday.locations.ToArray());
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _errorCount++;
-                    LogMessage(ex, false, "debug", "Error {Error} retrieving holidays, public holidays cannot be evaluated (Try {Count} of 10)...", ex.Message, _errorCount);
-                    _isHolidayError = true;                    
-                    _lastError = DateTime.Now;
-                    _holidays = new List<AbstractApiHolidays>();
-                }
-
-            }
-            else
-                _holidays = new List<AbstractApiHolidays>();
+            if (!_useHolidays || _isUpdating)
+                utcRollover(DateTime.UtcNow);
 
             if (_diagnostics)
                 LogMessage(false, "debug", "Convert Timeout {timeout} to TimeSpan ...", Timeout);
@@ -321,42 +289,6 @@ namespace Seq.App.EventTimeout
             _suppressionTime = TimeSpan.FromSeconds(SuppressionTime);
             if (_diagnostics)
                 LogMessage(false, "debug", "Parsed Suppression is {timeout} ...", _suppressionTime.TotalSeconds);
-
-            if (_diagnostics)
-                LogMessage(false, "debug", "Convert Start Time {time} to UTC DateTime ...", StartTime, App.Title);
-            if (!string.IsNullOrEmpty(_testDate))
-                _startTime = DateTime.ParseExact(_testDate + " " + StartTime, "yyyy-M-d H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
-            else
-                _startTime = DateTime.ParseExact(StartTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
-
-            if (_startTime < DateTime.UtcNow)
-                _startTime = _startTime.AddDays(1);
-
-            foreach (AbstractApiHolidays holiday in _holidays)
-                if (_startTime >= holiday.utcStart && _startTime < holiday.utcEnd)
-                {
-                    _startTime = _startTime.AddDays(1);
-                    break;
-                }
-
-            if (_diagnostics)
-                LogMessage(false, "debug", "Parsed UTC Start Time is {time}, UTC Day {dayofweek} ...", _startTime.ToShortTimeString(), _startTime.DayOfWeek);
-
-            if (_diagnostics)
-                LogMessage(false, "debug", "Convert End Time {time} to UTC DateTime ...", EndTime, StartTime);
-            if (!string.IsNullOrEmpty(_testDate))
-                _endTime = DateTime.ParseExact(_testDate + " " + EndTime, "yyyy-M-d H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
-            else
-                _endTime = DateTime.ParseExact(EndTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
-            if (_endTime <= _startTime)
-                if (_endTime.AddDays(1) < _startTime)
-                    _endTime = _endTime.AddDays(2);
-                else
-                    _endTime = _endTime.AddDays(1);
-
-
-            if (_diagnostics)
-                LogMessage(false, "debug", "Parsed UTC End Time is {time}, UTC Day {dayofweek} ...", _endTime.ToShortTimeString(), _endTime.DayOfWeek);
 
             if (_diagnostics)
                 LogMessage(false, "debug", "Convert Days of Week {daysofweek} to UTC Days of Week ...", DaysOfWeek);
@@ -428,10 +360,10 @@ namespace Seq.App.EventTimeout
             if (_diagnostics)
                 LogMessage(false, "debug", "Log level {loglevel} will be used for timeouts on {Instance} ...", _timeoutLogLevel, App.Title);
 
-
             if (_diagnostics)
                 LogMessage(false, "debug", "Starting timer ...");
-            _timer = new Timer(1000);
+            _timer = new System.Timers.Timer(1000);
+            _timer.AutoReset = true;
             _timer.Elapsed += TimerOnElapsed;
             _timer.Start();
             if (_diagnostics)
@@ -439,9 +371,68 @@ namespace Seq.App.EventTimeout
 
         }
 
-        List<AbstractApiHolidays> validateHolidays(List<AbstractApiHolidays> holidayList)
+        private void retrieveHolidays(DateTime localDate, DateTime utcDate)
         {
-            List<AbstractApiHolidays> result = new List<AbstractApiHolidays>();            
+            if (_useHolidays && (!_isUpdating || (_isUpdating && (DateTime.Now - _lastError).TotalSeconds > 10 && _errorCount < _retryCount)))
+            {
+                _isUpdating = true;
+                if (!string.IsNullOrEmpty(_testDate))
+                    localDate = DateTime.ParseExact(_testDate, "yyyy-M-d", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None);
+
+                if (_diagnostics)
+                    LogMessage(false, "debug", "Retrieve holidays for {Date}, Last Update {lastUpdateDate} {lastUpdateTime} ...", localDate.ToShortDateString(), _lastUpdate.ToShortDateString(), _lastUpdate.ToShortTimeString());
+                string holidayUrl = WebClient.getUrl(_apiKey, _country, localDate);
+                if (_diagnostics)
+                    LogMessage(false, "debug", "URL used is {url} ...", holidayUrl);
+                try
+                {
+                    _lastUpdate = DateTime.Now;
+                    List<AbstractApiHolidays> result = WebClient.getHolidays(_apiKey, _country, localDate).Result;
+                    _holidays = validateHolidays(result);
+                    _lastDay = localDate;
+
+                    if (_diagnostics)
+                    {
+                        if (!string.IsNullOrEmpty(_testDate))
+                        {
+                            LogMessage(false, "debug", "Test date {testDate} used, raw holidays retrieved {testCount} ...", _testDate, result.Count);
+                            foreach (AbstractApiHolidays holiday in result)
+                                LogMessage(false, "debug", "Holiday Name: {Name}, Local Name {LocalName}, Start {LocalStart}, Start UTC {Start}, End UTC {End}, Type {Type}, Location string {Location}, Locations parsed {Locations} ...",
+                                    holiday.name, holiday.name_local, holiday.localStart, holiday.utcStart, holiday.utcEnd, holiday.type, holiday.location, holiday.locations.ToArray());
+                        }
+                    }
+
+                    LogMessage(false, "debug", "Holidays retrieved and validated {holidayCount} ...", _holidays.Count);
+                    foreach (AbstractApiHolidays holiday in _holidays)
+                        LogMessage(false, "debug", "Holiday Name: {Name}, Local Name {LocalName}, Start {LocalStart}, Start UTC {Start}, End UTC {End}, Type {Type}, Location string {Location}, Locations parsed {Locations} ...",
+                            holiday.name, holiday.name_local, holiday.localStart, holiday.utcStart, holiday.utcEnd, holiday.type, holiday.location, holiday.locations.ToArray());
+
+                    _isUpdating = false;
+                    if (!_isShowtime)
+                        utcRollover(utcDate, true);
+                }
+                catch (Exception ex)
+                {
+                    _errorCount++;
+                    LogMessage(ex, false, "debug", "Error {Error} retrieving holidays, public holidays cannot be evaluated (Try {Count} of {retryCount})...", ex.Message, _errorCount, _retryCount);
+                    _lastError = DateTime.Now;
+                }
+
+            }
+            else if (!_useHolidays || (_isUpdating && _errorCount >= 10))
+            {
+                _isUpdating = false;
+                _lastDay = localDate;
+                _errorCount = 0;
+                _holidays = new List<AbstractApiHolidays>();
+                if (!_isShowtime)
+                    utcRollover(utcDate, true);
+            }
+        }
+
+        private List<AbstractApiHolidays> validateHolidays(List<AbstractApiHolidays> holidayList)
+        {
+            List<AbstractApiHolidays> result = new List<AbstractApiHolidays>();
             foreach (AbstractApiHolidays holiday in holidayList)
             {
                 bool hasType = false;
@@ -478,7 +469,7 @@ namespace Seq.App.EventTimeout
             return result;
         }
 
-        bool validateCountry(string countryCode)
+        private bool validateCountry(string countryCode)
         {
             return CultureInfo
                 .GetCultures(CultureTypes.SpecificCultures)
@@ -486,45 +477,61 @@ namespace Seq.App.EventTimeout
                         .Any(region => region.TwoLetterISORegionName.ToLower() == countryCode.ToLower());
         }
 
+        private void utcRollover(DateTime utcDate, bool isUpdateHolidays = false)
+        {
+            //Day rollover, we need to ensure the next start and end is in the future
+            if (!string.IsNullOrEmpty(_testDate))
+                _startTime = DateTime.ParseExact(_testDate + " " + StartTime, "yyyy-M-d H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
+            else
+                _startTime = DateTime.ParseExact(StartTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
+
+            if (_startTime < utcDate)
+                _startTime = _startTime.AddDays(1);
+
+            //If there are holidays, account for them
+            foreach (AbstractApiHolidays holiday in _holidays)
+                if (_startTime >= holiday.utcStart && _startTime < holiday.utcEnd)
+                {
+                    _startTime = _startTime.AddDays(1);
+                    break;
+                }
+
+
+            if (!string.IsNullOrEmpty(_testDate))
+                _endTime = DateTime.ParseExact(_testDate + " " + EndTime, "yyyy-M-d H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
+            else
+                _endTime = DateTime.ParseExact(EndTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
+
+            if (_endTime <= _startTime)
+                if (_endTime.AddDays(1) < _startTime)
+                    _endTime = _endTime.AddDays(2);
+                else
+                    _endTime = _endTime.AddDays(1);
+
+                if (isUpdateHolidays)
+                    LogMessage("debug", "UTC Day Rollover (Holidays Updated), Parse {LocalStart} To Next UTC Start Time {StartTime} ({StartDayOfWeek}), Parse {LocalEnd} to UTC End Time {EndTime} ({EndDayOfWeek})...",
+                    StartTime, _startTime.ToShortTimeString(), _startTime.DayOfWeek, EndTime, _endTime.ToShortTimeString(), _endTime.DayOfWeek);
+                else
+                    LogMessage("debug", "UTC Day Rollover, Parse {LocalStart} To Next UTC Start Time {StartTime} ({StartDayOfWeek}), Parse {LocalEnd} to UTC End Time {EndTime} ({EndDayOfWeek})...",
+                            StartTime, _startTime.ToShortTimeString(), _startTime.DayOfWeek, EndTime, _endTime.ToShortTimeString(), _endTime.DayOfWeek);
+        }
 
         private void TimerOnElapsed(object sender, ElapsedEventArgs e)
         {
             DateTime timeNow = DateTime.UtcNow;
-            _localDate = DateTime.Today;
+            DateTime localDate = DateTime.Today;
             if (!string.IsNullOrEmpty(_testDate))
-                _localDate = DateTime.ParseExact(_testDate, "yyyy-M-d", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None);
+                localDate = DateTime.ParseExact(_testDate, "yyyy-M-d", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None);
 
-            //Rollover the local date and retrieve holidays, if enabled
-            if (_lastDay < _localDate)
-            {
-                //Allow for 10 retries for API errors
-                if (_useHolidays && (!_isHolidayError || (_isHolidayError && (DateTime.Now - _lastError).TotalSeconds > 10 && _errorCount < 10)))
-                    try
-                    {
-                        LogMessage(false, "debug", "Local Day rollover, Retrieve holidays for {Date} ...", _localDate.ToShortDateString());
-                        _holidays = validateHolidays(WebClient.getHolidays(_apiKey, _country, DateTime.Now).Result);
-                        LogMessage(false, "debug", "Holidays retrieved and validated {holidayCount} ...", _holidays.Count);
-                        _isHolidayError = false;
-                        _lastDay = _localDate;
-                        _errorCount = 0;
-                    }
-                    catch (Exception ex)
-                    {
-                        _errorCount++;
-                        LogMessage(ex, false, "debug", "Error {Error} retrieving holidays, public holidays cannot be evaluated (Try {Count} of 10)...", ex.Message, _errorCount);
-                        _isHolidayError = true;
-                        _lastError = DateTime.Now;                        
-                    }
-            }
-            else
-            {
-                _holidays = new List<AbstractApiHolidays>();
-                _lastDay = _localDate;
-                _errorCount = 0;
-            }
+            if (_lastDay < localDate)
+                retrieveHolidays(localDate, timeNow);
 
+            //We can only do UTC rollover if we're not currently retrying holidays and it's not during showtime
+            if (!_isShowtime && (!_useHolidays || !_isUpdating) && (_startTime <= timeNow && string.IsNullOrEmpty(_testDate)))
+                utcRollover(timeNow);
 
-            if (timeNow >= _startTime && timeNow < _endTime && _daysOfWeek.Contains(_startTime.DayOfWeek))
+            //We can only enter showtime if we're not currently retrying holidays, but existing showtimes will continue to monitor
+            if ((!_useHolidays || (_isShowtime || (!_isShowtime && !_isUpdating))) && timeNow >= _startTime && timeNow < _endTime && _daysOfWeek.Contains(_startTime.DayOfWeek))
             {
                 if (!_isShowtime)
                 {
@@ -549,6 +556,7 @@ namespace Seq.App.EventTimeout
             }
             else if (timeNow < _startTime || timeNow >= _endTime)
             {
+                //Showtime can end even if we're retrieving holidays
                 if (_isShowtime)
                     LogMessage("debug", "UTC End Time {Time} ({DayOfWeek}), no longer monitoring for {MatchText} ...", _endTime.ToShortTimeString(), _endTime.DayOfWeek, _textMatch);
 
@@ -559,44 +567,6 @@ namespace Seq.App.EventTimeout
                 _isAlert = false;
                 _isShowtime = false;
             }
-
-            if (!_isShowtime && _startTime < timeNow)
-            {
-                //Day rollover, we need to ensure the next start and end is in the future
-                if (!string.IsNullOrEmpty(_testDate))
-                    _startTime = DateTime.ParseExact(_testDate + " " + StartTime, "yyyy-M-d H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
-                else
-                    _startTime = DateTime.ParseExact(StartTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
-                
-                if (_startTime < timeNow)
-                    _startTime = _startTime.AddDays(1);
-                
-                //If there are holidays, account for them
-                foreach (AbstractApiHolidays holiday in _holidays)
-                    if (_startTime >= holiday.utcStart && _startTime < holiday.utcEnd)
-                    {
-                        _startTime = _startTime.AddDays(1);
-                        break;
-                    }
-
-
-                if (!string.IsNullOrEmpty(_testDate))
-                    _endTime = DateTime.ParseExact(_testDate + " " + EndTime, "yyyy-M-d H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
-                else
-                    _endTime = DateTime.ParseExact(EndTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
-
-                if (_endTime <= _startTime)
-                    if (_endTime.AddDays(1) < _startTime)
-                        _endTime = _endTime.AddDays(2);
-                    else
-                        _endTime = _endTime.AddDays(1);
-
-                if (_diagnostics)
-                    LogMessage("debug", "UTC Day Rollover, Next UTC Start Time {StartTime} ({StartDayOfWeek}), UTC End Time {EndTime} ({EndDayOfWeek})...", 
-                        _startTime.ToShortTimeString(), _startTime.DayOfWeek, _endTime.ToShortTimeString(), _endTime.DayOfWeek);
-            }
-
-
         }
 
         public void On(Event<LogEventData> evt)
