@@ -373,7 +373,7 @@ namespace Seq.App.EventTimeout
 
         private void retrieveHolidays(DateTime localDate, DateTime utcDate)
         {
-            if (_useHolidays && (!_isUpdating || (_isUpdating && (DateTime.Now - _lastError).TotalSeconds > 10 && _errorCount < _retryCount)))
+            if (_useHolidays && (!_isUpdating || (_isUpdating && (DateTime.Now - _lastUpdate).TotalSeconds > 10 && (DateTime.Now - _lastError).TotalSeconds > 10 && _errorCount < _retryCount)))
             {
                 _isUpdating = true;
                 if (!string.IsNullOrEmpty(_testDate))
@@ -425,7 +425,7 @@ namespace Seq.App.EventTimeout
                 _lastDay = localDate;
                 _errorCount = 0;
                 _holidays = new List<AbstractApiHolidays>();
-                if (!_isShowtime)
+                if (_useHolidays && !_isShowtime)
                     utcRollover(utcDate, true);
             }
         }
@@ -485,7 +485,8 @@ namespace Seq.App.EventTimeout
             else
                 _startTime = DateTime.ParseExact(StartTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
 
-            if (_startTime < utcDate)
+            //If we updated holidays, don't automatically put start time to the future
+            if (_startTime < utcDate && !isUpdateHolidays)
                 _startTime = _startTime.AddDays(1);
 
             //If there are holidays, account for them
