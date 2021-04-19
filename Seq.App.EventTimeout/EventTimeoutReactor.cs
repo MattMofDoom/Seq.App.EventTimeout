@@ -527,10 +527,6 @@ namespace Seq.App.EventTimeout
             if (_lastDay < localDate)
                 retrieveHolidays(localDate, timeNow);
 
-            //We can only do UTC rollover if we're not currently retrying holidays and it's not during showtime
-            if (!_isShowtime && (!_useHolidays || !_isUpdating) && (_startTime <= timeNow && string.IsNullOrEmpty(_testDate)))
-                utcRollover(timeNow);
-
             //We can only enter showtime if we're not currently retrying holidays, but existing showtimes will continue to monitor
             if ((!_useHolidays || (_isShowtime || (!_isShowtime && !_isUpdating))) && timeNow >= _startTime && timeNow < _endTime && _daysOfWeek.Contains(_startTime.DayOfWeek))
             {
@@ -568,6 +564,10 @@ namespace Seq.App.EventTimeout
                 _isAlert = false;
                 _isShowtime = false;
             }
+
+            //We can only do UTC rollover if we're not currently retrying holidays and it's not during showtime
+            if (!_isShowtime && (!_useHolidays || !_isUpdating) && (_startTime <= timeNow && string.IsNullOrEmpty(_testDate)))
+                utcRollover(timeNow);
         }
 
         public void On(Event<LogEventData> evt)
