@@ -17,6 +17,12 @@ namespace Seq.App.EventTimeout
     {
         // Count of matches
         int _matched;
+        bool _cannotMatchAlerted;
+        bool _skippedShowtime;
+
+        string startFormat = "H:mm:ss";
+        string endFormat = "H:mm:ss";
+
         DateTime _startTime;
         DateTime _endTime;
         DateTime _lastLog;
@@ -29,11 +35,15 @@ namespace Seq.App.EventTimeout
         int _errorCount;
 
         List<DayOfWeek> _daysOfWeek;
+        List<int> _includeDays;
+        List<int> _excludeDays;
         string _testDate;
 
         TimeSpan _timeOut;
         TimeSpan _suppressionTime;
-        string _textMatch;
+
+        Dictionary<string, string> _properties;
+        
         string _alertMessage;
         string _alertDescription;
         string _timeoutLogLevel;
@@ -90,6 +100,18 @@ namespace Seq.App.EventTimeout
         public string DaysOfWeek { get; set; }
 
         [SeqAppSetting(
+            DisplayName = "Include Days of Month",
+            HelpText = "Only run on these days. Comma-delimited - first,last,1-31",
+            IsOptional = true)]
+        public string IncludeDaysOfMonth { get; set; }
+
+        [SeqAppSetting(
+            DisplayName = "Exclude Days of Month",
+            HelpText = "Never run on these days. Comma-delimited - first,last,1-31",
+            IsOptional = true)]
+        public string ExcludeDaysOfMonth { get; set; }
+
+        [SeqAppSetting(
             DisplayName = "Suppression Interval (seconds)",
             HelpText = "If an alert has been raised, further alerts will be suppressed for this time.",
             InputType = SettingInputType.Integer)]
@@ -101,9 +123,51 @@ namespace Seq.App.EventTimeout
         public string TimeoutLogLevel { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Text match",
-            HelpText = "Case insensitive text to match. If this is not seen in the configured timeout, an alert will be raised.")]
+            DisplayName = "Property 1 Name",
+            HelpText = "Case insensitive property name (must be a full match). If not configured, the @Message property will be used. If this is not seen in the configured timeout, an alert will be raised.",
+            IsOptional = true)]
+        public string Property1Name { get; set; }
+
+        [SeqAppSetting(
+            DisplayName = "Property 1 Match",
+            HelpText = "Case insensitive text to match - partial match okay. If this is not seen in the configured timeout, an alert will be raised.")]
         public string TextMatch { get; set; }
+
+        [SeqAppSetting(
+            DisplayName = "Property 2 Name",
+            HelpText = "Case insensitive property name (must be a full match). If not configured, this will not be evaluated.",
+            IsOptional = true)]
+        public string Property2Name { get; set; }
+
+        [SeqAppSetting(
+            DisplayName = "Property 2 Match",
+            HelpText = "Case insensitive text to match - partial match okay. If not configured, this will not be evaluated.",
+            IsOptional = true)]
+        public string Property2Match { get; set; }
+
+        [SeqAppSetting(
+            DisplayName = "Property 3 Name",
+            HelpText = "Case insensitive property name (must be a full match). If not configured, this will not be evaluated.",
+            IsOptional = true)]
+        public string Property3Name { get; set; }
+
+        [SeqAppSetting(
+            DisplayName = "Property 3 Match",
+            HelpText = "Case insensitive text to match - partial match okay. If not configured, this will not be evaluated.",
+            IsOptional = true)]
+        public string Property3Match { get; set; }
+
+        [SeqAppSetting(
+            DisplayName = "Property 4 Name",
+            HelpText = "Case insensitive property name (must be a full match). If not configured, this will not be evaluated.",
+            IsOptional = true)]
+        public string Property4Name { get; set; }
+
+        [SeqAppSetting(
+            DisplayName = "Property 4 Match",
+            HelpText = "Case insensitive text to match - partial match okay. If not configured, this will not be evaluated.",
+            IsOptional = true)]
+        public string Property4Match { get; set; }
 
         [SeqAppSetting(
             DisplayName = "Alert message",
@@ -217,6 +281,20 @@ namespace Seq.App.EventTimeout
             else if (_diagnostics)
                 LogMessage(false, "debug", "App name {AppName} will be included in alert message ...", App.Title);
 
+            DateTime testStartTime;
+            if (!DateTime.TryParseExact(StartTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out testStartTime))
+                if (DateTime.TryParseExact(StartTime, "H:mm", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out testStartTime))
+                    startFormat = "H:mm";
+                else
+                    LogMessage(false, "debug", "Start Time {StartTime} does  not parse to a valid DateTime - app will exit ...", StartTime);
+
+            DateTime testEndTime;
+            if (!DateTime.TryParseExact(EndTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out testEndTime))
+                if (DateTime.TryParseExact(EndTime, "H:mm", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out testEndTime))
+                    endFormat = "H:mm";
+                else
+                    LogMessage(false, "debug", "End Time {EndTime} does  not parse to a valid DateTime - app will exit ...", EndTime);
+
             LogMessage(false, "debug", "Use Holidays API {UseHolidays}, Country {Country}, Has API key {IsEmpty} ...", UseHolidays, Country, !string.IsNullOrEmpty(ApiKey));
             if (UseHolidays && !string.IsNullOrEmpty(Country) && !string.IsNullOrEmpty(ApiKey))
             {
@@ -326,10 +404,40 @@ namespace Seq.App.EventTimeout
                 LogMessage(false, "debug", "UTC Days of Week {daysofweek} will be used ...", _daysOfWeek.ToArray());
 
             if (_diagnostics)
-                LogMessage(false, "debug", "Validate Text Match '{TextMatch}' ...", TextMatch);
-            _textMatch = string.IsNullOrWhiteSpace(TextMatch) ? "Match text" : TextMatch.Trim();
+                LogMessage(false, "debug", "Validate Include Days of Month {includedays} ...", IncludeDaysOfMonth);
+            _includeDays = getDaysOfMonth(IncludeDaysOfMonth);
             if (_diagnostics)
-                LogMessage(false, "debug", "Text Match '{TextMatch}' will be used ...", _textMatch);
+                if (_includeDays.Count > 0)
+                    LogMessage(false, "debug", "Include UTC Days of Month: {includedays} ...", _includeDays.ToArray());
+                else
+                    LogMessage(false, "debug", "Include UTC Days of Month: ALL ...");
+
+            if (_diagnostics)
+                LogMessage(false, "debug", "Validate Exclude Days of Month {excludedays} ...", ExcludeDaysOfMonth);
+            _excludeDays = getDaysOfMonth(ExcludeDaysOfMonth);
+            if (_diagnostics)
+                if (_includeDays.Count > 0)
+                    LogMessage(false, "debug", "Exclude UTC Days of Month: {includedays} ...", _excludeDays.ToArray());
+                else
+                    LogMessage(false, "debug", "Exclude UTC Days of Month: NONE ...");
+
+            //Evaluate the properties we will match
+            _properties = new Dictionary<string, string>();
+
+            KeyValuePair<string, string> property = getProperty(1, Property1Name, TextMatch);
+            _properties.Add(property.Key, property.Value);
+            property = getProperty(2, Property2Name, Property2Match);
+            if (!string.IsNullOrEmpty(property.Key))
+                _properties.Add(property.Key, property.Value);
+            property = getProperty(3, Property3Name, Property3Match);
+            if (!string.IsNullOrEmpty(property.Key))
+                _properties.Add(property.Key, property.Value);
+            property = getProperty(4, Property4Name, Property4Match);
+            if (!string.IsNullOrEmpty(property.Key))
+                _properties.Add(property.Key, property.Value);
+
+            if (_diagnostics)
+                LogMessage(false, "debug", "Match criteria will be: {MatchText}", matchConditions());
 
             if (_diagnostics)
                 LogMessage(false, "debug", "Validate Alert Message '{AlertMessage}' ...", AlertMessage);
@@ -369,6 +477,66 @@ namespace Seq.App.EventTimeout
             if (_diagnostics)
                 LogMessage(false, "debug", "Timer started ...");
 
+        }
+
+        private List<int> getDaysOfMonth(string days)
+        {
+            List<int> dayResult = new List<int>();
+            if (!string.IsNullOrEmpty(days))
+            {
+                List<string> dayList = days.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToList();
+
+                DateTime localStart = DateTime.ParseExact(StartTime, startFormat, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None);
+
+                foreach (string day in dayList)
+                    switch (day.ToLower())
+                    {
+                        case "first":
+                            DateTime firstDay = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1, localStart.Hour, localStart.Minute, localStart.Second).ToUniversalTime();
+                            dayResult.Add(firstDay.Day);
+                            break;
+                        case "last":
+                            DateTime lastDay = new DateTime(DateTime.Today.Year, DateTime.Today.Month, DateTime.DaysInMonth(DateTime.Now.Year, DateTime.Now.Month), localStart.Hour, localStart.Minute, localStart.Second).ToUniversalTime();
+                            dayResult.Add(lastDay.Day);
+                            break;
+                        default:
+                            int result;
+                            if (int.TryParse(day, out result))
+                            {
+                                DateTime resultDay = new DateTime(DateTime.Today.Year, DateTime.Today.Month, result, localStart.Hour, localStart.Minute, localStart.Second).ToUniversalTime();
+                                dayResult.Add(result);
+                            }
+                            break;
+                    }
+            }
+
+            return dayResult;
+        }
+
+        private KeyValuePair<string, string> getProperty(int property, string propertyName, string propertyMatch)
+        {
+            string key = string.Empty;
+            string value = string.Empty;
+
+            if (_diagnostics)
+                LogMessage(false, "debug", "Validate Property {PropertyNo}: '{PropertyNameValue}' ...", property, propertyName);
+            if (string.IsNullOrEmpty(propertyName) && property == 1)
+                key = "@Message";
+            else if (!string.IsNullOrEmpty(propertyName))
+                key = propertyName.Trim();
+
+            if (!string.IsNullOrEmpty(key))
+            {
+                if (_diagnostics)
+                    LogMessage(false, "debug", "Validate Property {PropertyNo} Match Value '{PropertyMatch}' ...", property, propertyMatch);
+                value = string.IsNullOrWhiteSpace(propertyMatch) ? "Match text" : propertyMatch.Trim();
+                if (_diagnostics)
+                    LogMessage(false, "debug", "Property {PropertyNo} '{PropertyName}' will be used to match '{PropertyMatch}'...", property, key, value);
+            }
+            else if (_diagnostics)
+                LogMessage(false, "debug", "Property {PropertyNo} will not be used to match values ...", property);
+
+            return new KeyValuePair<string, string>(key, value);
         }
 
         private void retrieveHolidays(DateTime localDate, DateTime utcDate)
@@ -481,9 +649,9 @@ namespace Seq.App.EventTimeout
         {
             //Day rollover, we need to ensure the next start and end is in the future
             if (!string.IsNullOrEmpty(_testDate))
-                _startTime = DateTime.ParseExact(_testDate + " " + StartTime, "yyyy-M-d H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
+                _startTime = DateTime.ParseExact(_testDate + " " + StartTime, "yyyy-M-d " + startFormat, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
             else
-                _startTime = DateTime.ParseExact(StartTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
+                _startTime = DateTime.ParseExact(StartTime, startFormat, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
 
             //If we updated holidays, don't automatically put start time to the future
             if (_startTime < utcDate && !isUpdateHolidays)
@@ -497,11 +665,10 @@ namespace Seq.App.EventTimeout
                     break;
                 }
 
-
             if (!string.IsNullOrEmpty(_testDate))
-                _endTime = DateTime.ParseExact(_testDate + " " + EndTime, "yyyy-M-d H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
+                _endTime = DateTime.ParseExact(_testDate + " " + EndTime, "yyyy-M-d " + endFormat, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
             else
-                _endTime = DateTime.ParseExact(EndTime, "H:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
+                _endTime = DateTime.ParseExact(EndTime, endFormat, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None).ToUniversalTime();
 
             if (_endTime <= _startTime)
                 if (_endTime.AddDays(1) < _startTime)
@@ -517,6 +684,22 @@ namespace Seq.App.EventTimeout
                             StartTime, _startTime.ToShortTimeString(), _startTime.DayOfWeek, EndTime, _endTime.ToShortTimeString(), _endTime.DayOfWeek);
         }
 
+        public string matchConditions()
+        {
+            int count = 0;
+            string condition = string.Empty;
+            foreach (KeyValuePair<string,string> property in _properties)
+            {
+                count++;
+                if (count == 1)
+                    condition = property.Key + " contains '" + property.Value + "'";
+                else if (!string.IsNullOrEmpty(property.Key))
+                    condition = condition + " AND " + property.Key + " contains '" + property.Value + "'";
+            }
+
+            return condition;
+        }
+
         private void TimerOnElapsed(object sender, ElapsedEventArgs e)
         {
             DateTime timeNow = DateTime.UtcNow;
@@ -528,34 +711,46 @@ namespace Seq.App.EventTimeout
                 retrieveHolidays(localDate, timeNow);
 
             //We can only enter showtime if we're not currently retrying holidays, but existing showtimes will continue to monitor
-            if ((!_useHolidays || (_isShowtime || (!_isShowtime && !_isUpdating))) && timeNow >= _startTime && timeNow < _endTime && _daysOfWeek.Contains(_startTime.DayOfWeek))
+            if ((!_useHolidays || (_isShowtime || (!_isShowtime && !_isUpdating))) && timeNow >= _startTime && timeNow < _endTime)
             {
-                if (!_isShowtime)
+                if (!_daysOfWeek.Contains(_startTime.DayOfWeek) || (_includeDays.Count > 0 && !_includeDays.Contains(_startTime.Day)) || _excludeDays.Contains(_startTime.Day))
                 {
-                    LogMessage("debug", "UTC Start Time {Time} ({DayOfWeek}), monitoring for {MatchText} within {Timeout} seconds, until UTC End time {EndTime} ({EndDayOfWeek}) ...", 
-                        _startTime.ToShortTimeString(), _startTime.DayOfWeek, _textMatch, _timeOut.TotalSeconds, _endTime.ToShortTimeString(), _endTime.DayOfWeek);
-                    _isShowtime = true;
-                    _lastCheck = timeNow;
+                    //Log that we have skipped a day due to an exclusion
+                    if (!_skippedShowtime)
+                        LogMessage("debug", "Matching will not be performed due to exclusions - Day of Week Excluded {DayOfWeek}, Day Of Month Included {IncludeDay}, Day of Month Excluded {ExcludeDay} ...", 
+                            !_daysOfWeek.Contains(_startTime.DayOfWeek), _includeDays.Contains(_startTime.Day), _excludeDays.Contains(_startTime.Day));
+                    _skippedShowtime = true;
                 }
-
-                TimeSpan difference = timeNow - _lastCheck;
-                if (difference.TotalSeconds > _timeOut.TotalSeconds && _matched == 0)
+                else
                 {
-                    TimeSpan suppressDiff = timeNow - _lastLog;
-                    if (_isAlert && suppressDiff.TotalSeconds < _suppressionTime.TotalSeconds)
-                        return;
+                    //Showtime! - Evaluate whether we have matched properties with log events
+                    if (!_isShowtime)
+                    {
+                        LogMessage("debug", "UTC Start Time {Time} ({DayOfWeek}), monitoring for {MatchText} within {Timeout} seconds, until UTC End time {EndTime} ({EndDayOfWeek}) ...",
+                            _startTime.ToShortTimeString(), _startTime.DayOfWeek, matchConditions(), _timeOut.TotalSeconds, _endTime.ToShortTimeString(), _endTime.DayOfWeek);
+                        _isShowtime = true;
+                        _lastCheck = timeNow;
+                    }
 
-                    //Log event                    
-                    LogMessage(_timeoutLogLevel, "{Message} : {Description}", _alertMessage, _alertDescription);
-                    _lastLog = timeNow;
-                    _isAlert = true;
+                    TimeSpan difference = timeNow - _lastCheck;
+                    if (difference.TotalSeconds > _timeOut.TotalSeconds && _matched == 0)
+                    {
+                        TimeSpan suppressDiff = timeNow - _lastLog;
+                        if (_isAlert && suppressDiff.TotalSeconds < _suppressionTime.TotalSeconds)
+                            return;
+
+                        //Log event                    
+                        LogMessage(_timeoutLogLevel, "{Message} : {Description}", _alertMessage, _alertDescription);
+                        _lastLog = timeNow;
+                        _isAlert = true;
+                    }
                 }
             }
             else if (timeNow < _startTime || timeNow >= _endTime)
             {
                 //Showtime can end even if we're retrieving holidays
                 if (_isShowtime)
-                    LogMessage("debug", "UTC End Time {Time} ({DayOfWeek}), no longer monitoring for {MatchText} ...", _endTime.ToShortTimeString(), _endTime.DayOfWeek, _textMatch);
+                    LogMessage("debug", "UTC End Time {Time} ({DayOfWeek}), no longer monitoring for {MatchText} ...", _endTime.ToShortTimeString(), _endTime.DayOfWeek, matchConditions());
 
                 //Reset the match counters
                 _lastLog = timeNow;
@@ -563,11 +758,18 @@ namespace Seq.App.EventTimeout
                 _matched = 0;
                 _isAlert = false;
                 _isShowtime = false;
+                _cannotMatchAlerted = false;
+                _skippedShowtime = false;
             }
 
             //We can only do UTC rollover if we're not currently retrying holidays and it's not during showtime
             if (!_isShowtime && (!_useHolidays || !_isUpdating) && (_startTime <= timeNow && string.IsNullOrEmpty(_testDate)))
+            {
                 utcRollover(timeNow);
+                //Take the opportunity to refresh include/exclude days to allow for month rollover
+                _includeDays = getDaysOfMonth(IncludeDaysOfMonth);
+                _excludeDays = getDaysOfMonth(ExcludeDaysOfMonth);
+            }
         }
 
         public void On(Event<LogEventData> evt)
@@ -575,13 +777,48 @@ namespace Seq.App.EventTimeout
             if (evt == null) throw new ArgumentNullException(nameof(evt));
 
             DateTime timeNow = DateTime.UtcNow;
-            if (_matched == 0 && timeNow >= _startTime && timeNow < _endTime && _daysOfWeek.Contains(_startTime.DayOfWeek))
+            DateTime localDate = DateTime.Today;
+            bool cannotMatch = false;
+            List<string> cannotMatchProperties = new List<string>();
+            int properties = 0;
+            int matches = 0;
+
+            if (_matched == 0 && _isShowtime)
             {
-                if (evt.Data.RenderedMessage.IndexOf(TextMatch, StringComparison.CurrentCultureIgnoreCase) >= 0)
+                foreach (KeyValuePair<string, string> property in _properties)
+                {
+                    properties++;
+                    if (property.Key.Equals("@Message", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        if (evt.Data.RenderedMessage.IndexOf(property.Value, StringComparison.CurrentCultureIgnoreCase) >= 0)
+                            matches++;
+
+                    }
+                    else if (evt.Data.Properties.ContainsKey(property.Key))
+                    {
+
+                        if (evt.Data.Properties[property.Key].ToString().IndexOf(property.Value, StringComparison.CurrentCultureIgnoreCase) >= 0)
+                            matches++;
+
+                    }
+                    else
+                    {
+                        cannotMatch = true;
+                        cannotMatchProperties.Add(property.Key);
+                    }
+                }
+
+                if (cannotMatch && !_cannotMatchAlerted)
+                {
+                    LogMessage("debug", "Warning - An event was seen without the properties {PropertyName}, which may impact the ability to alert on failures - further failures will not be logged ...", string.Join(",", cannotMatchProperties.ToArray()));
+                    _cannotMatchAlerted = true;
+                }
+
+                if (!cannotMatch && properties == matches)
                 {
                     _matched++;
                     _lastCheck = timeNow;
-                    LogMessage("debug", "Successfully matched {TextMatch}! Further matches will not be logged ...", _textMatch);
+                    LogMessage("debug", "Successfully matched {TextMatch}! Further matches will not be logged ...", matchConditions());
                 }
             }
         }
