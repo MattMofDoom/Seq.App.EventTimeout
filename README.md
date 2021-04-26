@@ -55,6 +55,8 @@ A summary of the full feature set of Event Timeout follows:
 
 The application has a large amount of configuration items. Here's an example instance config which will monitor a signal between 12:00pm and 12:05pm on Monday-Friday (except public holidays) for @Message containing "Test Event Text", and alert if not found.
 
+This uses application logic that ensures that if Property 1 Name is not set, then @Message will be matched.
+
 |Property|Value|
 |--- |--- |
 |Title|TestEvent|
@@ -80,6 +82,50 @@ The application has a large amount of configuration items. Here's an example ins
 |Property 4 Match||
 |Alert message|Test Event Failure!|
 |Alert description|The Test Event Text was not seen in the expected timeframe!|
+|Alert tags||
+|Include instance name in alert message|Enabled|
+|Use Holidays API for public holiday detection|Enabled|
+|Country code|AU|
+|Holidays API Key|Per Abstract API account|
+|Match these holidays|National,Local|
+|Local Holidays|Australia,New South Wales|
+|Include weekends|Disabled|
+|Include Bank Holidays|Disabled|
+|Test Date||
+|Proxy address||
+|Proxy bypass local addresses|Disabled|
+|Local addresses for proxy bypass||
+|Proxy username||
+|Proxy password||
+
+
+An example using multiple properties over a 24 hour period, except for public holidays and the first day of the month:
+
+|Property|Value|
+|--- |--- |
+|Title|TestEvent2|
+|Stream Incoming Events|Enabled|
+|Signal|TestSignal|
+|Allow manual input|Disabled|
+|Re-order input by timestamp|Disabled|
+|Start Time|0:00:00|
+|End Time|0:00:00|
+|Timeout Interval (seconds)|3600|
+|Days of Week|Monday,Tuesday,Wednesday,Thursday,Friday|
+|Include Days of Month||
+|Exclude Days of Month|first|
+|Suppression Interval (seconds)|3600|
+|Log level for timeouts|Error|
+|Property 1 Name|Status|
+|Property 1 Match|Error|
+|Property 2 Name|JobName|
+|Property 2 Match|TestJob|
+|Property 3 Name|Alerts|
+|Property 3 Match|1|
+|Property 4 Name||
+|Property 4 Match||
+|Alert message|Test Event 2 Failure!|
+|Alert description|The Test Event 2 Text was not seen in the expected timeframe!|
 |Alert tags||
 |Include instance name in alert message|Enabled|
 |Use Holidays API for public holiday detection|Enabled|
