@@ -620,6 +620,7 @@ namespace Seq.App.EventTimeout
                     List<AbstractApiHolidays> result = WebClient.getHolidays(_apiKey, _country, localDate).Result;
                     _holidays = Holidays.validateHolidays(result, _holidayMatch, _localeMatch, _includeBank, _includeWeekends);
                     _lastDay = localDate;
+                    _errorCount = 0;
 
                     if (_diagnostics && !string.IsNullOrEmpty(_testDate))
                     {
