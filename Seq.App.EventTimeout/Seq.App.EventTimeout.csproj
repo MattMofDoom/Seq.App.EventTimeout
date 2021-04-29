@@ -6,9 +6,14 @@
     <ApplicationIcon>alert.ico</ApplicationIcon>
     <Authors>Matt Marlor</Authors>
     <Copyright></Copyright>
-    <AssemblyVersion>1.2.2.0</AssemblyVersion>
-    <FileVersion>1.2.2.0</FileVersion>
-    <Version>1.2.2</Version>
+    <VersionSuffix>$([System.DateTime]::UtcNow.ToString(mmff))</VersionSuffix>
+    <!--<AssemblyVersion>1.2.3.0</AssemblyVersion>-->
+    <Version>1.2.3</Version>
+    <AssemblyVersion Condition=" '$(VersionSuffix)' == '' ">$(Version).1</AssemblyVersion>
+    <AssemblyVersion Condition=" '$(VersionSuffix)' != '' ">$(Version).$(VersionSuffix)</AssemblyVersion>
+    <FileVersion Condition=" '$(VersionSuffix)' == '' ">$(Version).0</FileVersion>
+    <FileVersion Condition=" '$(VersionSuffix)' != '' ">$(Version).$(VersionSuffix)</FileVersion>
+
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>Log events to Seq if a matching event is not seen by a configured interval in a given timeframe.</Description>
     <PackageLicenseUrl></PackageLicenseUrl>
@@ -19,9 +24,9 @@
     <PackageTags>seq-app</PackageTags>
     <PackageIcon>alert.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageReleaseNotes>* Evaluate multiple properties (up to 4)
-* Include and exclude specific days of month
-* Date expressions (eg. first, last, first weekday, first Monday, second Tuesday, third Wednesday, fourth Thursday, fifth Friday, last Friday)</PackageReleaseNotes>
+    <PackageReleaseNotes>* Reset _errorCount on successful retrieval of holidays</PackageReleaseNotes>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -39,10 +44,10 @@
     <PackageReference Include="Seq.Apps" Version="5.1.0" />
   </ItemGroup>
 
-  <Target Name="Flurl" AfterTargets="Build">
+<!--  <Target Name="Flurl" AfterTargets="Build">
     <Copy SourceFiles="$(PkgFlurl)\lib\$(TargetFramework)\Flurl.dll" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(PkgFlurl_Http)\lib\$(TargetFramework)\Flurl.Http.dll" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
-  </Target>
+  </Target>-->
   
   <ItemGroup>
     <None Include="alert.png">
