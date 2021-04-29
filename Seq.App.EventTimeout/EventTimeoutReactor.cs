@@ -331,8 +331,8 @@ namespace Seq.App.EventTimeout
                 LogEvent(LogEventLevel.Debug, "Validate Exclude Days of Month {excludedays} ...", ExcludeDaysOfMonth);
             _excludeDays = Dates.getDaysOfMonth(ExcludeDaysOfMonth, StartTime, startFormat);
             if (_diagnostics)
-                if (_includeDays.Count > 0)
-                    LogEvent(LogEventLevel.Debug, "Exclude UTC Days of Month: {includedays} ...", _excludeDays.ToArray());
+                if (_excludeDays.Count > 0)
+                    LogEvent(LogEventLevel.Debug, "Exclude UTC Days of Month: {excludedays} ...", _excludeDays.ToArray());
                 else
                     LogEvent(LogEventLevel.Debug, "Exclude UTC Days of Month: NONE ...");
 
