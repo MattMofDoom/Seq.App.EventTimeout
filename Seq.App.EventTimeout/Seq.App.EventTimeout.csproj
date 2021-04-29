@@ -8,7 +8,7 @@
     <Copyright></Copyright>
     <VersionSuffix>$([System.DateTime]::UtcNow.ToString(mmff))</VersionSuffix>
     <!--<AssemblyVersion>1.2.3.0</AssemblyVersion>-->
-    <Version>1.2.3</Version>
+    <Version>1.2.4</Version>
     <AssemblyVersion Condition=" '$(VersionSuffix)' == '' ">$(Version).1</AssemblyVersion>
     <AssemblyVersion Condition=" '$(VersionSuffix)' != '' ">$(Version).$(VersionSuffix)</AssemblyVersion>
     <FileVersion Condition=" '$(VersionSuffix)' == '' ">$(Version).0</FileVersion>
@@ -24,7 +24,8 @@
     <PackageTags>seq-app</PackageTags>
     <PackageIcon>alert.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageReleaseNotes>* Reset _errorCount on successful retrieval of holidays</PackageReleaseNotes>
+    <PackageReleaseNotes>* Reset _errorCount on successful retrieval of holidays
+* Make exclusion logging clearer</PackageReleaseNotes>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
