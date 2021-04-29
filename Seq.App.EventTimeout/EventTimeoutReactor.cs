@@ -396,12 +396,12 @@ namespace Seq.App.EventTimeout
             //We can only enter showtime if we're not currently retrying holidays, but existing showtimes will continue to monitor
             if ((!_useHolidays || (_isShowtime || (!_isShowtime && !_isUpdating))) && timeNow >= _startTime && timeNow < _endTime)
             {
-                if (!_daysOfWeek.Contains(_startTime.DayOfWeek) || (_includeDays.Count > 0 && !_includeDays.Contains(_startTime.Day)) || _excludeDays.Contains(_startTime.Day))
+                if (!_isShowtime && (!_daysOfWeek.Contains(_startTime.DayOfWeek) || (_includeDays.Count > 0 && !_includeDays.Contains(_startTime.Day)) || _excludeDays.Contains(_startTime.Day)))
                 {
                     //Log that we have skipped a day due to an exclusion
                     if (!_skippedShowtime)
-                        LogEvent(LogEventLevel.Debug, "Matching will not be performed due to exclusions - Day of Week Excluded {DayOfWeek}, Day Of Month Included {IncludeDay}, Day of Month Excluded {ExcludeDay} ...",
-                            !_daysOfWeek.Contains(_startTime.DayOfWeek), _includeDays.Contains(_startTime.Day), _excludeDays.Contains(_startTime.Day));
+                        LogEvent(LogEventLevel.Debug, "Matching will not be performed due to exclusions - Day of Week Excluded {DayOfWeek}, Day Of Month Not Included {IncludeDay}, Day of Month Excluded {ExcludeDay} ...",
+                            !_daysOfWeek.Contains(_startTime.DayOfWeek), !_includeDays.Contains(_startTime.Day), _excludeDays.Contains(_startTime.Day));
                     _skippedShowtime = true;
                 }
                 else
