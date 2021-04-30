@@ -313,7 +313,7 @@ namespace Seq.App.EventTimeout
             if (_diagnostics)
                 LogEvent(LogEventLevel.Debug, "Convert Days of Week {daysofweek} to UTC Days of Week ...", DaysOfWeek);
 
-            _daysOfWeek = Dates.getDaysOfWeek(DaysOfWeek, _startTime, _endTime);
+            _daysOfWeek = Dates.getDaysOfWeek(DaysOfWeek, StartTime, startFormat);
 
             if (_diagnostics)
                 LogEvent(LogEventLevel.Debug, "UTC Days of Week {daysofweek} will be used ...", _daysOfWeek.ToArray());
@@ -321,20 +321,18 @@ namespace Seq.App.EventTimeout
             if (_diagnostics)
                 LogEvent(LogEventLevel.Debug, "Validate Include Days of Month {includedays} ...", IncludeDaysOfMonth);
             _includeDays = Dates.getDaysOfMonth(IncludeDaysOfMonth, StartTime, startFormat);
-            if (_diagnostics)
-                if (_includeDays.Count > 0)
-                    LogEvent(LogEventLevel.Debug, "Include UTC Days of Month: {includedays} ...", _includeDays.ToArray());
-                else
-                    LogEvent(LogEventLevel.Debug, "Include UTC Days of Month: ALL ...");
+            if (_includeDays.Count > 0)
+                LogEvent(LogEventLevel.Debug, "Include UTC Days of Month: {includedays} ...", _includeDays.ToArray());
+            else
+                LogEvent(LogEventLevel.Debug, "Include UTC Days of Month: ALL ...");
 
             if (_diagnostics)
                 LogEvent(LogEventLevel.Debug, "Validate Exclude Days of Month {excludedays} ...", ExcludeDaysOfMonth);
             _excludeDays = Dates.getDaysOfMonth(ExcludeDaysOfMonth, StartTime, startFormat);
-            if (_diagnostics)
-                if (_excludeDays.Count > 0)
-                    LogEvent(LogEventLevel.Debug, "Exclude UTC Days of Month: {excludedays} ...", _excludeDays.ToArray());
-                else
-                    LogEvent(LogEventLevel.Debug, "Exclude UTC Days of Month: NONE ...");
+            if (_excludeDays.Count > 0)
+                LogEvent(LogEventLevel.Debug, "Exclude UTC Days of Month: {excludedays} ...", _excludeDays.ToArray());
+            else
+                LogEvent(LogEventLevel.Debug, "Exclude UTC Days of Month: NONE ...");
 
             //Evaluate the properties we will match
             _properties = setProperties();
@@ -401,7 +399,7 @@ namespace Seq.App.EventTimeout
                     //Log that we have skipped a day due to an exclusion
                     if (!_skippedShowtime)
                         LogEvent(LogEventLevel.Debug, "Matching will not be performed due to exclusions - Day of Week Excluded {DayOfWeek}, Day Of Month Not Included {IncludeDay}, Day of Month Excluded {ExcludeDay} ...",
-                            !_daysOfWeek.Contains(_startTime.DayOfWeek), !_includeDays.Contains(_startTime.Day), _excludeDays.Contains(_startTime.Day));
+                            !_daysOfWeek.Contains(_startTime.DayOfWeek), _includeDays.Count > 0 && !_includeDays.Contains(_startTime.Day), _excludeDays.Count > 0 && _excludeDays.Contains(_startTime.Day));
                     _skippedShowtime = true;
                 }
                 else
@@ -451,7 +449,11 @@ namespace Seq.App.EventTimeout
                 utcRollover(timeNow);
                 //Take the opportunity to refresh include/exclude days to allow for month rollover
                 _includeDays = Dates.getDaysOfMonth(IncludeDaysOfMonth, StartTime, startFormat);
+                if (_includeDays.Count > 0)
+                    LogEvent(LogEventLevel.Debug, "Include UTC Days of Month: {includedays} ...", _includeDays.ToArray());
                 _excludeDays = Dates.getDaysOfMonth(ExcludeDaysOfMonth, StartTime, startFormat);
+                if (_excludeDays.Count > 0)
+                    LogEvent(LogEventLevel.Debug, "Exclude UTC Days of Month: {excludedays} ...", _excludeDays.ToArray());
             }
         }
 

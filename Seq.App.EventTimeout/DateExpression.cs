@@ -24,113 +24,161 @@ namespace Seq.App.EventTimeout
         None = -1
     }
 
+    public enum DayMatch
+    {
+        Sunday = DayOfWeek.Sunday,
+        Monday = DayOfWeek.Monday,
+        Tuesday = DayOfWeek.Tuesday,
+        Wednesday = DayOfWeek.Wednesday,
+        Thursday = DayOfWeek.Thursday,
+        Friday = DayOfWeek.Friday,
+        Saturday = DayOfWeek.Saturday,
+        None = -1
+    }
+
     public class DateExpression
     {
         public DayExpression dayOrder { get; set; }
         public DayType dayType { get; set; }
-        public DayOfWeek weekDay { get; set; }
+        public DayOfWeek dayOfWeek { get; set; }
         public int day { get; set; }
 
-        public DateExpression(DayExpression o, DayType type, DayOfWeek w, int d)
+        public DateExpression(DayExpression order, DayType type, DayOfWeek weekday, int dayofmonth)
         {
-            dayOrder = o;
+            dayOrder = order;
             dayType = type;
-            weekDay = w;
-            day = d;
+            dayOfWeek = weekday;
+            day = dayofmonth;
         }
     }
 
     public static class Dates
     {
-        public static DateExpression getDay(string day)
+        private static DateExpression getDayOfMonth(DayExpression dayExp,  DayType dayType, DayMatch matchDay, DateTime targetDate)
+        {
+            DateTime firstDay = new DateTime(targetDate.Year, targetDate.Month, 1);
+            DateTime lastDay = new DateTime(targetDate.Year, targetDate.Month, DateTime.DaysInMonth(targetDate.Year, targetDate.Month));
+
+            switch (dayType)
+            {
+                case DayType.DayOfMonth:
+                    //Only first or last days of month are handled
+                    switch (dayExp)
+                    {
+                        case DayExpression.First:
+                            return new DateExpression(dayExp, dayType, firstDay.DayOfWeek, firstDay.Day);
+                        case DayExpression.Last:
+                            return new DateExpression(dayExp, dayType, lastDay.DayOfWeek, lastDay.Day);
+                        default:
+                            return new DateExpression(DayExpression.None, DayType.NoMatch, DayOfWeek.Sunday, -1);
+                    }
+                case DayType.Weekday:
+                    //Only first or last weekday expressions are handled
+                    switch (dayExp)
+                    {
+                        case DayExpression.First:
+                            //Find the first weekday
+                            switch (firstDay.DayOfWeek)
+                            {
+                                case DayOfWeek.Sunday:
+                                    firstDay = firstDay.AddDays(1);
+                                    break;
+                                case DayOfWeek.Saturday:
+                                    firstDay = firstDay.AddDays(2);
+                                    break;
+
+                            }
+
+                            return new DateExpression(dayExp, dayType, firstDay.DayOfWeek, firstDay.Day);
+                        case DayExpression.Last:
+                            //Find the last weekday
+                            switch (lastDay.DayOfWeek)
+                            {
+                                case DayOfWeek.Sunday:
+                                    lastDay = lastDay.AddDays(-2);
+                                    break;
+                                case DayOfWeek.Saturday:
+                                    lastDay = lastDay.AddDays(-1);
+                                    break;
+                            }
+
+                            return new DateExpression(dayExp, dayType, lastDay.DayOfWeek, lastDay.Day);
+                        default:
+                            return new DateExpression(DayExpression.None, DayType.NoMatch, DayOfWeek.Sunday, -1);
+                    }
+                case DayType.DayOfWeek:
+                    //Calculate the day of week in the month, according to the DayExpression (First, Second, Third, Fourth, Fifth, Last)
+                    if (dayExp == DayExpression.Last)
+                    {
+                        while ((int)lastDay.DayOfWeek != (int)matchDay)
+                            lastDay = lastDay.AddDays(-1);
+
+                        return new DateExpression(dayExp, dayType, lastDay.DayOfWeek, lastDay.Day);
+                    }
+                    else if (dayExp != DayExpression.None)
+                    {
+                        //Match the first day of month for this DayOfWeek
+                        while ((int)firstDay.DayOfWeek != (int)matchDay)
+                            firstDay = firstDay.AddDays(1);
+
+                        //Calculate the nth DayOfWeek
+                        firstDay = firstDay.AddDays((int)dayExp * 7);
+
+                        //Make sure the nth DayOfWeek is still in the same month
+                        if (targetDate.Month == firstDay.Month)
+                            return new DateExpression(dayExp, dayType, firstDay.DayOfWeek, firstDay.Day);
+                        else
+                            return new DateExpression(DayExpression.None, DayType.NoMatch, DayOfWeek.Sunday, -1);
+                    }
+
+                    return new DateExpression(DayExpression.None, DayType.NoMatch, DayOfWeek.Sunday, -1);
+                case DayType.Day:
+                    //Just return a date expression for the date passed in
+                    return new DateExpression(dayExp, dayType, targetDate.DayOfWeek, targetDate.Day);
+            }
+
+            return new DateExpression(DayExpression.None, DayType.NoMatch, DayOfWeek.Sunday, -1);
+        }
+
+        private static DateExpression getDay(string day, DateTime localStart)
         {
             if (string.IsNullOrEmpty(day))
                 return new DateExpression(DayExpression.None, DayType.NoMatch, DayOfWeek.Sunday, -1);
 
-            DateTime firstDay = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-            DateTime lastDay = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.DaysInMonth(DateTime.Now.Year, DateTime.Now.Month));
+            DateTime dateNow = DateTime.Today;
+            DateTime firstDay = new DateTime(dateNow.Year, dateNow.Month, 1);
+            DateTime lastDay = new DateTime(firstDay.Year, firstDay.Month, DateTime.DaysInMonth(firstDay.Year, firstDay.Month));
 
             //If it's a simple integer, we can just return the day
             int dayResult;
-            if (int.TryParse(day, out dayResult))
-                if (dayResult > 0 && dayResult < lastDay.Day)
-                    return new DateExpression(DayExpression.None, DayType.Day, new DateTime(DateTime.Now.Year, DateTime.Now.Month, dayResult).DayOfWeek, dayResult);
-                else
-                    return new DateExpression(DayExpression.None, DayType.NoMatch, DayOfWeek.Sunday, -1);
+            if (int.TryParse(day, out dayResult) && dayResult > 0)
+                return getDayOfMonth(DayExpression.None, DayType.Day, DayMatch.None, new DateTime(firstDay.Year, firstDay.Month, dayResult));
+
 
             switch (day.ToLower())
             {
                 case "first":
-                    return new DateExpression(DayExpression.First, DayType.DayOfMonth, firstDay.DayOfWeek, firstDay.Day);
+                    return getDayOfMonth(DayExpression.First, DayType.DayOfMonth, DayMatch.None, firstDay);
                 case "last":
-                    return new DateExpression(DayExpression.Last, DayType.DayOfMonth, lastDay.DayOfWeek, lastDay.Day);
+                    return getDayOfMonth(DayExpression.Last, DayType.DayOfMonth, DayMatch.None, lastDay);
                 case "first weekday":
-                    int firstWeekday = firstDay.Day;
-                    switch (firstDay.DayOfWeek)
-                    {
-                        case DayOfWeek.Sunday:
-                            firstWeekday = firstWeekday++;
-                            break;
-                        case DayOfWeek.Saturday:
-                            firstWeekday = firstWeekday + 2;
-                            break;
-                    }
-                    return new DateExpression(DayExpression.First, DayType.DayOfWeek, new DateTime(DateTime.Now.Year, DateTime.Now.Month, firstWeekday).DayOfWeek, firstWeekday);
+                    return getDayOfMonth(DayExpression.First, DayType.Weekday, DayMatch.None, firstDay);
                 case "last weekday":
-                    int lastWeekday = lastDay.Day;
-                    switch (lastDay.DayOfWeek)
-                    {
-                        case DayOfWeek.Sunday:
-                            lastWeekday = lastWeekday - 2;
-                            break;
-                        case DayOfWeek.Saturday:
-                            lastWeekday = lastWeekday--;
-                            break;
-                    }
-                    return new DateExpression(DayExpression.Last, DayType.DayOfWeek, new DateTime(DateTime.Now.Year, DateTime.Now.Month, lastWeekday).DayOfWeek, lastWeekday);
+                    return getDayOfMonth(DayExpression.First, DayType.Weekday, DayMatch.None, lastDay);
                 default:
-                    string[] dayExp = day.Split(' ');
-                    if (dayExp.Length == 2)
+                    string[] dayExpressionString = day.Split(' ');
+                    if (dayExpressionString.Length == 2)
                     {
-                        //parse to first, second, third, fourth, last
-                        DayExpression expResult = DayExpression.None;
-                        if (!Enum.TryParse<DayExpression>(dayExp[0], true, out expResult) || expResult == DayExpression.None)
-                            return new DateExpression(DayExpression.None, DayType.NoMatch, DayOfWeek.Sunday, -1);
-
-                        DayOfWeek dow;
-                        if (!Enum.TryParse<DayOfWeek>(dayExp[1], true, out dow))
-                            return new DateExpression(DayExpression.None, DayType.NoMatch, DayOfWeek.Sunday, -1);
-
-                        if (expResult == DayExpression.Last)
-                        {
-                            DateTime mDate = lastDay;
-                            while (mDate.DayOfWeek != dow)
-                                mDate = mDate.AddDays(-1);
-
-                            return new DateExpression(expResult, DayType.DayOfWeek, dow, mDate.Day);
-                        }
-                        else
-                        {
-                            //Match the first day of month for this DayOfWeek
-                            DateTime nDate = firstDay;
-                            while (nDate.DayOfWeek != dow)
-                                nDate = nDate.AddDays(1);
-
-                            //Calculate the nth DayOfWeek
-                            nDate = nDate.AddDays((int)expResult * 7);
-
-                            if (nDate.Month == firstDay.Month)
-                                return new DateExpression(expResult, DayType.DayOfWeek, nDate.DayOfWeek, nDate.Day);
-                            else
-                                return new DateExpression(DayExpression.None, DayType.NoMatch, DayOfWeek.Sunday, -1);
-                        }
+                        //Parse to first, second, third, fourth, last
+                        DayExpression dayExpression = DayExpression.None;
+                        //Parse on the dayofweek to match
+                        DayMatch dayMatch = DayMatch.None;
+                        if (Enum.TryParse<DayExpression>(dayExpressionString[0], true, out dayExpression) && dayExpression != DayExpression.None)
+                            if (Enum.TryParse<DayMatch>(dayExpressionString[1], true, out dayMatch))
+                                return getDayOfMonth(dayExpression, DayType.DayOfWeek, dayMatch, firstDay);
                     }
-
-                    break;
+                    return new DateExpression(DayExpression.None, DayType.NoMatch, DayOfWeek.Sunday, -1);
             }
-
-            return new DateExpression(DayExpression.None, DayType.NoMatch, DayOfWeek.Sunday, -1);
-
         }
 
         public static List<int> getDaysOfMonth(string Days, string StartTime, string StartFormat)
@@ -141,14 +189,17 @@ namespace Seq.App.EventTimeout
                 List<string> dayList = Days.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToList();
 
                 DateTime localStart = DateTime.ParseExact(StartTime, StartFormat, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None);
+                //Always calculate based on next start
+                if (localStart < DateTime.Now)
+                    localStart = localStart.AddDays(1);
 
                 foreach (string day in dayList)
                 {
-                    DateExpression dayExp = getDay(day);
-                    if (dayExp.dayType != DayType.NoMatch)
+                    DateExpression dayExpression = getDay(day, localStart);
+                    if (dayExpression.dayType != DayType.NoMatch)
                     {
                         //Calculate UTC day based on start time
-                        DateTime resultDay = new DateTime(DateTime.Today.Year, DateTime.Today.Month, dayExp.day, localStart.Hour, localStart.Minute, localStart.Second).ToUniversalTime();
+                        DateTime resultDay = new DateTime(localStart.Year, localStart.Month, dayExpression.day, localStart.Hour, localStart.Minute, localStart.Second).ToUniversalTime();
                         if (!dayResult.Contains(resultDay.Day))
                             dayResult.Add(resultDay.Day);
                     }
@@ -159,33 +210,32 @@ namespace Seq.App.EventTimeout
             return dayResult;
         }
 
-        public static List<DayOfWeek> getDaysOfWeek(string Days, DateTime StartTime, DateTime EndTime)
+        public static List<DayOfWeek> getDaysOfWeek(string Days, string StartTime, string StartFormat)
         {
             List<DayOfWeek> dayResult = new List<DayOfWeek>();
+            DateTime localStart = DateTime.ParseExact(StartTime, StartFormat, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None);
+            DateTime utcStart = localStart.ToUniversalTime();
+
+            //Always calculate based on next start
+            if (localStart < DateTime.Now)
+                localStart = localStart.AddDays(1);
+
             if (!string.IsNullOrEmpty(Days))
             {
                 string[] days = Days.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToArray();
                 if (days.Length > 0)
                 {
-                    dayResult = new List<DayOfWeek>();
-                    bool crossesUtcDay = false;
-
-                    if ((int)StartTime.DayOfWeek < (int)EndTime.DayOfWeek || ((int)StartTime.DayOfWeek == 6 && (int)EndTime.DayOfWeek == 0))
-                        crossesUtcDay = true;
-
+                    //Calculate dasys of week based on UTC start times
+                    DayOfWeek dayOfWeek = DayOfWeek.Sunday;
                     foreach (string day in days)
-                    {
-                        DayOfWeek dow;
-
-                        if (!crossesUtcDay)
-                            dow = (DayOfWeek)((int)(DayOfWeek)Enum.Parse(typeof(DayOfWeek), day));
-                        else if ((int)(DayOfWeek)Enum.Parse(typeof(DayOfWeek), day) - 1 < 0)
-                            dow = DayOfWeek.Saturday;
-                        else
-                            dow = (DayOfWeek)((int)(DayOfWeek)Enum.Parse(typeof(DayOfWeek), day) - 1);
-
-                        dayResult.Add(dow);
-                    }
+                        if (Enum.TryParse(day, out dayOfWeek))
+                            if (localStart.ToUniversalTime().DayOfWeek < localStart.DayOfWeek || ((int)localStart.DayOfWeek == 0 && (int)utcStart.DayOfWeek == 6))
+                                if (dayOfWeek - 1 >= 0)
+                                    dayResult.Add(dayOfWeek - 1);
+                                else
+                                    dayResult.Add(DayOfWeek.Saturday);
+                            else
+                                dayResult.Add(dayOfWeek);
                 }
             }
 
