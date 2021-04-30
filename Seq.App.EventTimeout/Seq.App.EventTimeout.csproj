@@ -8,7 +8,7 @@
     <Copyright></Copyright>
     <VersionSuffix>$([System.DateTime]::UtcNow.ToString(mmff))</VersionSuffix>
     <!--<AssemblyVersion>1.2.3.0</AssemblyVersion>-->
-    <Version>1.2.5</Version>
+    <Version>1.2.7</Version>
     <AssemblyVersion Condition=" '$(VersionSuffix)' == '' ">$(Version).1</AssemblyVersion>
     <AssemblyVersion Condition=" '$(VersionSuffix)' != '' ">$(Version).$(VersionSuffix)</AssemblyVersion>
     <FileVersion Condition=" '$(VersionSuffix)' == '' ">$(Version).0</FileVersion>
@@ -26,7 +26,9 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReleaseNotes>* Reset _errorCount on successful retrieval of holidays
 * Make exclusion logging clearer
-* Correct exclude days log at startup</PackageReleaseNotes>
+* Correct exclude days log at startup
+* Ensure inclusion/exclusion dates always calculate against next start date
+* Correct days of week UTC calculation</PackageReleaseNotes>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
