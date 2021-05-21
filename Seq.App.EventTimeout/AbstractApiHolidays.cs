@@ -72,15 +72,15 @@ namespace Seq.App.EventTimeout
 
                 if (HolidayMatch.Count > 0)
                     foreach (string match in HolidayMatch)
-                        if (holiday.type.IndexOf(match, StringComparison.CurrentCultureIgnoreCase) >= 0)
+                        if (holiday.type.IndexOf(match, StringComparison.OrdinalIgnoreCase) >= 0)
                             hasType = true;
 
                 if (LocaleMatch.Count > 0)
                     foreach (string match in LocaleMatch)
-                        if (holiday.locations.FindIndex(loc => loc.Equals(match, StringComparison.CurrentCultureIgnoreCase)) >= 0)
+                        if (holiday.locations.FindIndex(loc => loc.Equals(match, StringComparison.OrdinalIgnoreCase)) >= 0)
                             hasRegion = true;
 
-                if (!IncludeBank && holiday.name.IndexOf("Bank Holiday", StringComparison.CurrentCultureIgnoreCase) >= 0)
+                if (!IncludeBank && holiday.name.IndexOf("Bank Holiday", StringComparison.OrdinalIgnoreCase) >= 0)
                     isBank = true;
 
                 if (!IncludeWeekends && (holiday.localStart.DayOfWeek == DayOfWeek.Sunday || holiday.localStart.DayOfWeek == DayOfWeek.Saturday))

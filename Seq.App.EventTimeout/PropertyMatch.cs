@@ -46,7 +46,7 @@ namespace Seq.App.EventTimeout
             if (string.IsNullOrEmpty(MatchText))
                 return true;
             else
-                return Text.IndexOf(MatchText, StringComparison.CurrentCultureIgnoreCase) >= 0;
+                return Text.IndexOf(MatchText, StringComparison.OrdinalIgnoreCase) >= 0;
         }
     }
 }

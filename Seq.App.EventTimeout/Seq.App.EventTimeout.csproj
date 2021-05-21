@@ -8,14 +8,14 @@
     <Copyright></Copyright>
     <VersionSuffix>$([System.DateTime]::UtcNow.ToString(mmff))</VersionSuffix>
     <!--<AssemblyVersion>1.2.3.0</AssemblyVersion>-->
-    <Version>1.2.7</Version>
+    <Version>1.3.6</Version>
     <AssemblyVersion Condition=" '$(VersionSuffix)' == '' ">$(Version).1</AssemblyVersion>
     <AssemblyVersion Condition=" '$(VersionSuffix)' != '' ">$(Version).$(VersionSuffix)</AssemblyVersion>
     <FileVersion Condition=" '$(VersionSuffix)' == '' ">$(Version).0</FileVersion>
     <FileVersion Condition=" '$(VersionSuffix)' != '' ">$(Version).$(VersionSuffix)</FileVersion>
 
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <Description>Log events to Seq if a matching event is not seen by a configured interval in a given timeframe.</Description>
+    <Description>Super-powered monitoring of Seq events with start/end times, timeout and suppression intervals, matching multiple properties, day of week and day of month inclusion/exclusion, and optional holiday API!</Description>
     <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/MattMofDoom/Seq.App.EventTimeout</PackageProjectUrl>
     <PackageIconUrl></PackageIconUrl>
@@ -24,11 +24,10 @@
     <PackageTags>seq-app</PackageTags>
     <PackageIcon>alert.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageReleaseNotes>* Reset _errorCount on successful retrieval of holidays
-* Make exclusion logging clearer
-* Correct exclude days log at startup
-* Ensure inclusion/exclusion dates always calculate against next start date
-* Correct days of week UTC calculation</PackageReleaseNotes>
+    <PackageReleaseNotes>* Add optional repeating timeout
+* Case insensitive key matching
+* Switch to ordinal case insensitive matching
+* Update config name/description</PackageReleaseNotes>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
