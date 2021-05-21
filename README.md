@@ -1,7 +1,7 @@
 # Seq.Apps.EventTimeout - Event Timeout for Seq
 
 [![Version](https://img.shields.io/nuget/v/Seq.App.EventTimeout?style=plastic)](https://www.nuget.org/packages/Seq.App.EventTimeout)
-[![Downloads](https://img.shields.io/nuget/dt/Seq.App.EventTimeout?style=plastic))](https://www.nuget.org/packages/Seq.App.EventTimeout)
+[![Downloads](https://img.shields.io/nuget/dt/Seq.App.EventTimeout?style=plastic)](https://www.nuget.org/packages/Seq.App.EventTimeout)
 [![License](https://img.shields.io/github/license/MattMofDoom/Seq.App.EventTimeout?style=plastic)](https://github.com/MattMofDoom/Seq.App.EventTimeout/blob/dev/LICENSE)
 
 This app provides an event timeout function for [Seq](https://datalust.co/seq). It will read an input stream and monitor for matching text strings on configured properties, during a configured start and end time. 
