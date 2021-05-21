@@ -7,11 +7,12 @@ using Seq.Apps.LogEvents;
 
 namespace Seq.App.EventTimeout
 {
-    [SeqApp("Event Timeout", Description = "Log events if a matching event is not seen by a configured interval in a given timeframe.")]
+    [SeqApp("Event Timeout", Description = "Super-powered monitoring of Seq events with start/end times, timeout and suppression intervals, matching multiple properties, day of week and day of month inclusion/exclusion, and optional holiday API!")]
     public class EventTimeoutReactor : SeqApp, ISubscribeTo<LogEventData>
     {
         // Count of matches
         int _matched;
+        int _lastMatched;
         bool _cannotMatchAlerted;
         bool _skippedShowtime;
 
@@ -22,6 +23,7 @@ namespace Seq.App.EventTimeout
         DateTime _endTime;
         DateTime _lastLog;
         DateTime _lastCheck;
+        DateTime _lastMatchLog;
         DateTime _lastDay;
 
         bool _isUpdating;
@@ -35,6 +37,7 @@ namespace Seq.App.EventTimeout
         string _testDate;
 
         TimeSpan _timeOut;
+        bool _repeatTimeout;
         TimeSpan _suppressionTime;
 
         Dictionary<string, string> _properties;
@@ -69,98 +72,104 @@ namespace Seq.App.EventTimeout
 
         [SeqAppSetting(
             DisplayName = "Diagnostic logging",
-            HelpText = "Send extra diagnostic logging to the stream")]
+            HelpText = "Send extra diagnostic logging to the stream.")]
         public bool Diagnostics { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Start Time",
-            HelpText = "The time (H:mm:ss, 24 hour format) to start monitoring")]
+            DisplayName = "Start time",
+            HelpText = "The time (H:mm:ss, 24 hour format) to start monitoring.")]
         public string StartTime { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "End Time",
-            HelpText = "The time (H:mm:ss, 24 hour format) to stop monitoring, up to 24 hours after start time")]
+            DisplayName = "End time",
+            HelpText = "The time (H:mm:ss, 24 hour format) to stop monitoring, up to 24 hours after start time.")]
         public string EndTime { get; set; }
-
+                
         [SeqAppSetting(
-            DisplayName = "Timeout Interval (seconds)",
-            HelpText = "Time period in which a matching log entry must be seen. After this, an alert will be raised",
+            DisplayName = "Timeout interval (seconds)",
+            HelpText = "Time period in which a matching log entry must be seen. After this, an alert will be raised.",
             InputType = SettingInputType.Integer)]
         public int Timeout { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Days of Week",
-            HelpText = "Comma-delimited - Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday",
+            DisplayName = "Repeat timeout",
+            HelpText = "Optionally re-arm the timeout after a match, within the start/end time parameters - useful for a 'heartbeat' style alert.",
+            IsOptional = true)]
+        public bool RepeatTimeout { get; set; }
+
+        [SeqAppSetting(
+            DisplayName = "Days of week",
+            HelpText = "Comma-delimited - Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday.",
             IsOptional = true)]
         public string DaysOfWeek { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Include Days of Month",
-            HelpText = "Only run on these days. Comma-delimited - first,last,first weekday,last weekday,first-fourth sunday-saturday,1-31",
+            DisplayName = "Include days of month",
+            HelpText = "Only run on these days. Comma-delimited - first,last,first weekday,last weekday,first-fourth sunday-saturday,1-31.",
             IsOptional = true)]
         public string IncludeDaysOfMonth { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Exclude Days of Month",
-            HelpText = "Never run on these days. Comma-delimited - first,last,1-31",
+            DisplayName = "Exclude days of month",
+            HelpText = "Never run on these days. Comma-delimited - first,last,1-31.",
             IsOptional = true)]
         public string ExcludeDaysOfMonth { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Suppression Interval (seconds)",
-            HelpText = "If an alert has been raised, further alerts will be suppressed for this time.",
+            DisplayName = "Suppression interval (seconds)",
+            HelpText = "If an alert has been raised, further alerts will be suppressed for this time. Will also suppress repeating timeout matches.",
             InputType = SettingInputType.Integer)]
         public int SuppressionTime { get; set; }
 
         [SeqAppSetting(DisplayName = "Log level for timeouts",
-          HelpText = "Verbose, Debug, Information, Warning, Error, Fatal",
+          HelpText = "Verbose, Debug, Information, Warning, Error, Fatal.",
           IsOptional = true)]
         public string TimeoutLogLevel { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Property 1 Name",
+            DisplayName = "Property 1 name",
             HelpText = "Case insensitive property name (must be a full match). If not configured, the @Message property will be used. If this is not seen in the configured timeout, an alert will be raised.",
             IsOptional = true)]
         public string Property1Name { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Property 1 Match",
+            DisplayName = "Property 1 match",
             HelpText = "Case insensitive text to match - partial match okay. If not configured, ANY text will match. If this is not seen in the configured timeout, an alert will be raised.",
             IsOptional = true)]
         public string TextMatch { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Property 2 Name",
+            DisplayName = "Property 2 name",
             HelpText = "Case insensitive property name (must be a full match). If not configured, this will not be evaluated.",
             IsOptional = true)]
         public string Property2Name { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Property 2 Match",
+            DisplayName = "Property 2 match",
             HelpText = "Case insensitive text to match - partial match okay. If property name is set and this is not configured, ANY text will match.",
             IsOptional = true)]
         public string Property2Match { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Property 3 Name",
+            DisplayName = "Property 3 name",
             HelpText = "Case insensitive property name (must be a full match). If not configured, this will not be evaluated.",
             IsOptional = true)]
         public string Property3Name { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Property 3 Match",
+            DisplayName = "Property 3 match",
             HelpText = "Case insensitive text to match - partial match okay. If property name is set and this is not configured, ANY text will match.",
             IsOptional = true)]
         public string Property3Match { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Property 4 Name",
+            DisplayName = "Property 4 name",
             HelpText = "Case insensitive property name (must be a full match). If not configured, this will not be evaluated.",
             IsOptional = true)]
         public string Property4Name { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Property 4 Match",
+            DisplayName = "Property 4 match",
             HelpText = "Case insensitive text to match - partial match okay. If property name is set and this is not configured, ANY text will match.",
             IsOptional = true)]
         public string Property4Match { get; set; }
@@ -184,82 +193,82 @@ namespace Seq.App.EventTimeout
 
         [SeqAppSetting(
             DisplayName = "Include instance name in alert message",
-            HelpText = "Prepend the instance name to the alert message")]
+            HelpText = "Prepend the instance name to the alert message.")]
         public bool IncludeApp { get; set; }
 
 
         [SeqAppSetting(
-            DisplayName = "Use Holidays API for public holiday detection",
-            HelpText = "Connect to the AbstractApi Holidays service to detect public holidays")]
+            DisplayName = "Holidays - use Holidays API for public holiday detection",
+            HelpText = "Connect to the AbstractApi Holidays service to detect public holidays.")]
         public bool UseHolidays { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Country code",
-            HelpText = "Two letter country code (eg. AU)",
+            DisplayName = "Holidays - Country code",
+            HelpText = "Two letter country code (eg. AU).",
             IsOptional = true)]
         public string Country { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Holidays API key",
-            HelpText = "Sign up for an API key at https://www.abstractapi.com/holidays-api and enter it here",
+            DisplayName = "Holidays - API key",
+            HelpText = "Sign up for an API key at https://www.abstractapi.com/holidays-api and enter it here.",
             IsOptional = true,
             InputType = SettingInputType.Password)]
         public string ApiKey { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Match these holidays",
-            HelpText = "Comma-delimited list of holiday types (eg. National, Local) - case insensitive, partial match okay",
+            DisplayName = "Holidays - match these holiday types",
+            HelpText = "Comma-delimited list of holiday types (eg. National, Local) - case insensitive, partial match okay.",
             IsOptional = true)]
         public string HolidayMatch { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Local Holidays",
-            HelpText = "Holidays are valid if the location matches one of these comma separated values - case insensitive, must be a full match",
+            DisplayName = "Holidays - match these locales",
+            HelpText = "Holidays are valid if the location matches one of these comma separated values (eg. Australia,New South Wales) - case insensitive, must be a full match.",
             IsOptional = true)]
         public string LocaleMatch { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Include Weekends",
-            HelpText = "Include public holidays that are returned for weekends")]
+            DisplayName = "Holidays - include weekends",
+            HelpText = "Include public holidays that are returned for weekends.")]
         public bool IncludeWeekends { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Include Bank Holidays",
+            DisplayName = "Holidays - include Bank Holidays.",
             HelpText = "Include bank holidays")]
         public bool IncludeBank { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Test Date",
-            HelpText = "yyyy-M-d format. Used only for diagnostics - should normally be empty",
+            DisplayName = "Holidays - test date",
+            HelpText = "yyyy-M-d format. Used only for diagnostics - should normally be empty.",
             IsOptional = true)]
         public string TestDate { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Proxy address",
-            HelpText = "Proxy address for Holidays API",
+            DisplayName = "Holidays - proxy address",
+            HelpText = "Proxy address for Holidays API.",
             IsOptional = true)]
         public string Proxy { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Proxy bypass local addresses",
-            HelpText = "Bypass local addresses for proxy")]
+            DisplayName = "Holidays - proxy bypass local addresses",
+            HelpText = "Bypass local addresses for proxy.")]
         public bool BypassLocal { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Local addresses for proxy bypass",
-            HelpText = "Local addresses to bypass, comma separated",
+            DisplayName = "Holidays - local addresses for proxy bypass",
+            HelpText = "Local addresses to bypass, comma separated.",
             IsOptional = true)]
         public string LocalAddresses { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Proxy username",
-            HelpText = "Username for proxy authentication",
+            DisplayName = "Holidays - proxy username",
+            HelpText = "Username for proxy authentication.",
             IsOptional = true)]
         public string ProxyUser { get; set; }
 
         [SeqAppSetting(
-            DisplayName = "Proxy password",
-            HelpText = "Username for proxy authentication",
+            DisplayName = "Holidays - proxy password",
+            HelpText = "Username for proxy authentication.",
             IsOptional = true,
             InputType = SettingInputType.Password)]
         public string ProxyPass { get; set; }
@@ -303,6 +312,10 @@ namespace Seq.App.EventTimeout
             _timeOut = TimeSpan.FromSeconds(Timeout);
             if (_diagnostics)
                 LogEvent(LogEventLevel.Debug, "Parsed Timeout is {timeout} ...", _timeOut.TotalSeconds);
+
+            if (_diagnostics)
+                LogEvent(LogEventLevel.Debug, "Repeat Timeout: {RepeatTimeout} ...", RepeatTimeout);
+            _repeatTimeout = RepeatTimeout;
 
             if (_diagnostics)
                 LogEvent(LogEventLevel.Debug, "Convert Suppression {suppression} to TimeSpan ...", SuppressionTime);
@@ -411,10 +424,12 @@ namespace Seq.App.EventTimeout
                             _startTime.ToShortTimeString(), _startTime.DayOfWeek, PropertyMatch.matchConditions(_properties), _timeOut.TotalSeconds, _endTime.ToShortTimeString(), _endTime.DayOfWeek);
                         _isShowtime = true;
                         _lastCheck = timeNow;
+                        _lastMatchLog = timeNow;
                     }
 
                     TimeSpan difference = timeNow - _lastCheck;
-                    if (difference.TotalSeconds > _timeOut.TotalSeconds && _matched == 0)
+                    //Check the timeout versus any successful matches. If repeating timeouts are enabled, we'll compare matched with lastMatched to detect if there's been any matches
+                    if (difference.TotalSeconds > _timeOut.TotalSeconds && (_matched == 0 || (_repeatTimeout && _matched == _lastMatched)))
                     {
                         TimeSpan suppressDiff = timeNow - _lastLog;
                         if (_isAlert && suppressDiff.TotalSeconds < _suppressionTime.TotalSeconds)
@@ -425,18 +440,23 @@ namespace Seq.App.EventTimeout
                         _lastLog = timeNow;
                         _isAlert = true;
                     }
+
+                    //Grab a snapshot of the match count for next evaluation
+                    _lastMatched = _matched;
                 }
             }
             else if (timeNow < _startTime || timeNow >= _endTime)
             {
                 //Showtime can end even if we're retrieving holidays
                 if (_isShowtime)
-                    LogEvent(LogEventLevel.Debug, "UTC End Time {Time} ({DayOfWeek}), no longer monitoring for {MatchText} ...", _endTime.ToShortTimeString(), _endTime.DayOfWeek, PropertyMatch.matchConditions(_properties));
+                    LogEvent(LogEventLevel.Debug, "UTC End Time {Time} ({DayOfWeek}), no longer monitoring for {MatchText}, total matches {Matches} ...", _endTime.ToShortTimeString(), _endTime.DayOfWeek, PropertyMatch.matchConditions(_properties), _matched);
 
                 //Reset the match counters
                 _lastLog = timeNow;
                 _lastCheck = timeNow;
+                _lastMatchLog = timeNow;
                 _matched = 0;
+                _lastMatched = 0;
                 _isAlert = false;
                 _isShowtime = false;
                 _cannotMatchAlerted = false;
@@ -468,28 +488,39 @@ namespace Seq.App.EventTimeout
             int properties = 0;
             int matches = 0;
 
-            if (_matched == 0 && _isShowtime)
+            if ((_matched == 0 || _repeatTimeout) && _isShowtime)
             {
                 foreach (KeyValuePair<string, string> property in _properties)
                 {
                     properties++;
-                    if (property.Key.Equals("@Message", StringComparison.InvariantCultureIgnoreCase))
+                    if (property.Key.Equals("@Message", StringComparison.OrdinalIgnoreCase))
                     {
                         if (PropertyMatch.matches(evt.Data.RenderedMessage, property.Value))
                             matches++;
 
                     }
-                    else if (evt.Data.Properties.ContainsKey(property.Key))
-                    {
-
-                        if (PropertyMatch.matches(evt.Data.Properties[property.Key].ToString(), property.Value))
-                            matches++;
-
-                    }
                     else
                     {
-                        cannotMatch = true;
-                        cannotMatchProperties.Add(property.Key);
+                        bool matchedKey = false;
+
+                        //IReadOnlyDictionary ContainsKey is case sensitive, so we need to iterate
+                        foreach (KeyValuePair<string, object> key in evt.Data.Properties)
+                            if (key.Key.Equals(property.Key, StringComparison.OrdinalIgnoreCase))
+                            {
+                                matchedKey = true;
+                                if (PropertyMatch.matches(evt.Data.Properties[property.Key].ToString(), property.Value))
+                                {
+                                    matches++;
+                                    break;
+                                }
+                            }
+
+                        //If one of the configured properties doesn't have a matching property on the event, we won't be able to raise an alert
+                        if (!matchedKey)
+                        {
+                            cannotMatch = true;
+                            cannotMatchProperties.Add(property.Key);
+                        }
                     }
                 }
 
@@ -499,11 +530,30 @@ namespace Seq.App.EventTimeout
                     _cannotMatchAlerted = true;
                 }
 
+                //If all configured properties were present and had matches, log an event
                 if (!cannotMatch && properties == matches)
                 {
                     _matched++;
+                    int matchCount = _matched;
+                    int lastMatch = _lastMatched;
+
+                    TimeSpan difference = timeNow - _lastMatchLog;
                     _lastCheck = timeNow;
-                    LogEvent(LogEventLevel.Debug, "Successfully matched {TextMatch}! Further matches will not be logged ...", PropertyMatch.matchConditions(_properties));
+
+                    //Allow for repeating timeouts
+                    if (!_repeatTimeout)
+                        LogEvent(LogEventLevel.Debug, "Successfully matched {TextMatch}! Further matches will not be logged ...", PropertyMatch.matchConditions(_properties));
+                    else
+                    {
+                        if (lastMatch == 0 || difference.TotalSeconds > _suppressionTime.TotalSeconds)
+                        {
+                            _lastMatchLog = timeNow;
+                            //Only log one event regardless of how many match the first event                        
+                            if (lastMatch == 0 && _matched == 1 || _lastMatched > 0)
+                            LogEvent(LogEventLevel.Debug, "Successfully matched {TextMatch}! Total matches {Total} - resetting timeout to {Timeout} seconds, further matches will not be logged for {Suppression} seconds ...", PropertyMatch.matchConditions(_properties),
+                                _matched, _timeOut.TotalSeconds, _suppressionTime.TotalSeconds);
+                        }
+                    }
                 }
             }
         }
