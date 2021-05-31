@@ -5,54 +5,61 @@ using System.Linq;
 
 namespace Seq.App.EventTimeout
 {
+    /// <summary>
+    /// AbstractAPI Holidays API format
+    /// </summary>
     public class AbstractApiHolidays
     {
-        public string name { get; set; }
-        public string name_local { get; set; }
-        public string language { get; set; }
-        public string description { get; set; }
-        public string country { get; set; }
-        public string location { get; set; }
-        public List<string> locations { get; set; }
-        public string type { get; set; }
-        public DateTime localStart { get; set; }
-        public DateTime utcStart { get; set; }
-        public DateTime utcEnd { get; set; }
-        public string date { get; set; }
-        public string date_year { get; set; }
-        public string date_month { get; set; }
-        public string date_day { get; set; }
-        public string week_day { get; set; }
+        public string Name { get; set; }
+        public string Name_local { get; set; }
+        public string Language { get; set; }
+        public string Description { get; set; }
+        public string Country { get; set; }
+        public string Location { get; set; }
+        public List<string> Locations { get; set; }
+        public string Type { get; set; }
+        public DateTime LocalStart { get; set; }
+        public DateTime UtcStart { get; set; }
+        public DateTime UtcEnd { get; set; }
+        public string Date { get; set; }
+        public string Date_year { get; set; }
+        public string Date_month { get; set; }
+        public string Date_day { get; set; }
+        public string Week_day { get; set; }
 
-        public AbstractApiHolidays(string Name, string Name_Local, string Language, string Description, string Country, string Location, string Type, string Date, string Date_Year, string Date_Month, string Date_Day, string Week_Day)
+        public AbstractApiHolidays(string name, string name_local, string language, string description, string country, string location, string type, string date, string date_year, string date_month, string date_day, string week_day)
         {
-            name = Name;
-            name_local = Name_Local;
-            language = Language;
-            description = Description;
-            location = Location;
-            if (location.Contains(" - "))
-                locations = location.Substring(location.IndexOf(" - ") + 3, location.Length - location.IndexOf(" - ") - 3).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToList();
+            Name = name;
+            Name_local = name_local;
+            Language = language;
+            Description = description;
+            Location = location;
+            if (Location.Contains(" - "))
+            {
+                Locations = Location.Substring(Location.IndexOf(" - ") + 3, Location.Length - Location.IndexOf(" - ") - 3).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToList();
+            }
             else
-                locations = location.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToList();
+            {
+                Locations = Location.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToList();
+            }
 
-            country = Country;
-            type = Type;
-            date = Date;
-            date_year = date_year;
-            date_month = Date_Month;
-            date_day = Date_Day;
-            week_day = Week_Day;
-            localStart = DateTime.ParseExact(date, "M/d/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None);
-            utcStart = localStart.ToUniversalTime();
-            utcEnd = localStart.AddDays(1).ToUniversalTime();
+            Country = country;
+            Type = type;
+            Date = date;
+            Date_year = date_year;
+            Date_month = date_month;
+            Date_day = date_day;
+            Week_day = week_day;
+            LocalStart = DateTime.ParseExact(Date, "M/d/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None);
+            UtcStart = LocalStart.ToUniversalTime();
+            UtcEnd = LocalStart.AddDays(1).ToUniversalTime();
         }
     }
 
     public static class Holidays
     {
 
-        public static bool validateCountry(string countryCode)
+        public static bool ValidateCountry(string countryCode)
         {
             return CultureInfo
                 .GetCultures(CultureTypes.SpecificCultures)
@@ -60,40 +67,73 @@ namespace Seq.App.EventTimeout
                         .Any(region => region.TwoLetterISORegionName.ToLower() == countryCode.ToLower());
         }
 
-        public static List<AbstractApiHolidays> validateHolidays(List<AbstractApiHolidays> HolidayList, List<string> HolidayMatch, List<string> LocaleMatch, bool IncludeBank, bool IncludeWeekends)
+        /// <summary>
+        /// Validate AbstractAPI Holidays API output based on a given set of rules for holiday types, locales, and including/excluding bank holidays and weekends
+        /// </summary>
+        /// <param name="holidayList"></param>
+        /// <param name="holidayMatch"></param>
+        /// <param name="localeMatch"></param>
+        /// <param name="includeBank"></param>
+        /// <param name="includeWeekends"></param>
+        /// <returns></returns>
+        public static List<AbstractApiHolidays> ValidateHolidays(List<AbstractApiHolidays> holidayList, List<string> holidayMatch, List<string> localeMatch, bool includeBank, bool includeWeekends)
         {
             List<AbstractApiHolidays> result = new List<AbstractApiHolidays>();
-            foreach (AbstractApiHolidays holiday in HolidayList)
+            foreach (AbstractApiHolidays holiday in holidayList)
             {
                 bool hasType = false;
                 bool hasRegion = false;
                 bool isBank = false;
                 bool isWeekend = false;
 
-                if (HolidayMatch.Count > 0)
-                    foreach (string match in HolidayMatch)
-                        if (holiday.type.IndexOf(match, StringComparison.OrdinalIgnoreCase) >= 0)
+                if (holidayMatch.Count > 0)
+                {
+                    foreach (string match in holidayMatch)
+                    {
+                        if (holiday.Type.IndexOf(match, StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
                             hasType = true;
+                        }
+                    }
+                }
 
-                if (LocaleMatch.Count > 0)
-                    foreach (string match in LocaleMatch)
-                        if (holiday.locations.FindIndex(loc => loc.Equals(match, StringComparison.OrdinalIgnoreCase)) >= 0)
+                if (localeMatch.Count > 0)
+                {
+                    foreach (string match in localeMatch)
+                    {
+                        if (holiday.Locations.FindIndex(loc => loc.Equals(match, StringComparison.OrdinalIgnoreCase)) >= 0)
+                        {
                             hasRegion = true;
+                        }
+                    }
+                }
 
-                if (!IncludeBank && holiday.name.IndexOf("Bank Holiday", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (!includeBank && holiday.Name.IndexOf("Bank Holiday", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
                     isBank = true;
+                }
 
-                if (!IncludeWeekends && (holiday.localStart.DayOfWeek == DayOfWeek.Sunday || holiday.localStart.DayOfWeek == DayOfWeek.Saturday))
+                if (!includeWeekends && (holiday.LocalStart.DayOfWeek == DayOfWeek.Sunday || holiday.LocalStart.DayOfWeek == DayOfWeek.Saturday))
+                {
                     isWeekend = true;
+                }
 
-                if (HolidayMatch.Count > 0 && LocaleMatch.Count > 0 && hasType && hasRegion && !isBank && !isWeekend)
+                if (holidayMatch.Count > 0 && localeMatch.Count > 0 && hasType && hasRegion && !isBank && !isWeekend)
+                {
                     result.Add(holiday);
-                else if (HolidayMatch.Count > 0 && LocaleMatch.Count == 0 && hasType && !isBank && !isWeekend)
+                }
+                else if (holidayMatch.Count > 0 && localeMatch.Count == 0 && hasType && !isBank && !isWeekend)
+                {
                     result.Add(holiday);
-                else if (HolidayMatch.Count == 0 && LocaleMatch.Count > 0 && hasRegion && !isBank && !isWeekend)
+                }
+                else if (holidayMatch.Count == 0 && localeMatch.Count > 0 && hasRegion && !isBank && !isWeekend)
+                {
                     result.Add(holiday);
-                else if (HolidayMatch.Count == 0 && LocaleMatch.Count == 0 && !isBank && !isWeekend)
+                }
+                else if (holidayMatch.Count == 0 && localeMatch.Count == 0 && !isBank && !isWeekend)
+                {
                     result.Add(holiday);
+                }
             }
 
             return result;
