@@ -8,7 +8,7 @@
     <Copyright></Copyright>
     <VersionSuffix>$([System.DateTime]::UtcNow.ToString(mmff))</VersionSuffix>
     <!--<AssemblyVersion>1.2.3.0</AssemblyVersion>-->
-    <Version>1.3.6</Version>
+    <Version>1.3.7</Version>
     <AssemblyVersion Condition=" '$(VersionSuffix)' == '' ">$(Version).1</AssemblyVersion>
     <AssemblyVersion Condition=" '$(VersionSuffix)' != '' ">$(Version).$(VersionSuffix)</AssemblyVersion>
     <FileVersion Condition=" '$(VersionSuffix)' == '' ">$(Version).0</FileVersion>
@@ -24,10 +24,10 @@
     <PackageTags>seq-app</PackageTags>
     <PackageIcon>alert.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageReleaseNotes>* Add optional repeating timeout
-* Case insensitive key matching
-* Switch to ordinal case insensitive matching
-* Update config name/description</PackageReleaseNotes>
+    <PackageReleaseNotes>- Update date logic for last day of month for variable month lengths
+- Correct last weekday date expression
+- Update date expression names for clarity
+- Code cleanup, add code documentation</PackageReleaseNotes>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>

@@ -1,77 +1,132 @@
-﻿using System;
+﻿using Flurl.Http;
+using Flurl.Http.Configuration;
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Flurl.Http;
-using Flurl.Http.Configuration;
 
 namespace Seq.App.EventTimeout
 {
-    public class SeqClient : DefaultHttpClientFactory
+    /// <summary>
+    /// HTTP Client for retrieving Holidays API
+    /// </summary>
+    public class ApiClient : DefaultHttpClientFactory
     {
-        string appName { get; set; }
-        bool useProxy { get; set;  }
-        WebProxy proxy { get; set;  }
+        private string AppName { get; set; }
+        private bool UseProxy { get; set; }
+        private WebProxy Proxy { get; set; }
 
+        /// <summary>
+        /// API client message handler
+        /// </summary>
+        /// <returns></returns>
         public override HttpMessageHandler CreateMessageHandler()
         {
-            if (useProxy)
-                return new HttpClientHandler { Proxy = proxy, UseProxy = useProxy, UseDefaultCredentials = true, AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate };
+            if (UseProxy)
+            {
+                return new HttpClientHandler { Proxy = Proxy, UseProxy = UseProxy, UseDefaultCredentials = true, AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate };
+            }
             else
+            {
                 return new HttpClientHandler { UseDefaultCredentials = true, AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate };
+            }
         }
 
+        /// <summary>
+        /// API Client HttpClient
+        /// </summary>
+        /// <param name="handler"></param>
+        /// <returns></returns>
         public override HttpClient CreateHttpClient(HttpMessageHandler handler)
         {
             HttpClient httpClient = base.CreateHttpClient(handler);
-            httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd(appName);
+            httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd(AppName);
             httpClient.Timeout = new TimeSpan(0, 2, 0);
             httpClient.MaxResponseContentBufferSize = 262144;
 
             return httpClient;
         }
 
-        public SeqClient(string AppName, bool UseProxy, string Proxy = null, string ProxyUser = null, string ProxyPass = null, bool ProxyBypass = false, string[] LocalUrls = null)
+        /// <summary>
+        /// ApiClient instance
+        /// </summary>
+        /// <param name="appName"></param>
+        /// <param name="useProxy"></param>
+        /// <param name="proxy"></param>
+        /// <param name="proxyUser"></param>
+        /// <param name="proxyPass"></param>
+        /// <param name="proxyBypass"></param>
+        /// <param name="localUrls"></param>
+        public ApiClient(string appName, bool useProxy, string proxy = null, string proxyUser = null, string proxyPass = null, bool proxyBypass = false, string[] localUrls = null)
         {
-            appName = AppName;
-            if (UseProxy && !string.IsNullOrEmpty(Proxy))
+            AppName = appName;
+            if (useProxy && !string.IsNullOrEmpty(proxy))
             {
-                useProxy = UseProxy;
-                proxy = new WebProxy
+                UseProxy = useProxy;
+                Proxy = new WebProxy
                 {
-                    Address = new Uri(Proxy),
-                    BypassProxyOnLocal = ProxyBypass,
-                    BypassList = LocalUrls,
+                    Address = new Uri(proxy),
+                    BypassProxyOnLocal = proxyBypass,
+                    BypassList = localUrls,
                     UseDefaultCredentials = false
                 };
 
-                if (!string.IsNullOrEmpty(ProxyUser) && !string.IsNullOrEmpty(ProxyPass))
-                    proxy.Credentials = new NetworkCredential(ProxyUser, ProxyPass);
+                if (!string.IsNullOrEmpty(proxyUser) && !string.IsNullOrEmpty(proxyPass))
+                {
+                    Proxy.Credentials = new NetworkCredential(proxyUser, proxyPass);
+                }
                 else
-                    proxy.UseDefaultCredentials = true;
+                {
+                    Proxy.UseDefaultCredentials = true;
+                }
             }
             else
-                useProxy = false;
-
+            {
+                UseProxy = false;
+            }
         }
     }
 
     public static class WebClient
     {
-        public static void setFlurlConfig(string appName, bool useProxy, string proxy = null, string proxyUser = null, string proxyPass = null, bool proxyBypass = false, string[] localUrls = null)
+        /// <summary>
+        /// Configure Flurl.Http to use an ApiClient, given the configured parameters
+        /// </summary>
+        /// <param name="appName"></param>
+        /// <param name="useProxy"></param>
+        /// <param name="proxy"></param>
+        /// <param name="proxyUser"></param>
+        /// <param name="proxyPass"></param>
+        /// <param name="proxyBypass"></param>
+        /// <param name="localUrls"></param>
+        public static void SetFlurlConfig(string appName, bool useProxy, string proxy = null, string proxyUser = null, string proxyPass = null, bool proxyBypass = false, string[] localUrls = null)
         {
-            FlurlHttp.Configure(config => { config.HttpClientFactory = new SeqClient(appName, useProxy, proxy, proxyUser, proxyPass, proxyBypass, localUrls) ; });
+            FlurlHttp.Configure(config => { config.HttpClientFactory = new ApiClient(appName, useProxy, proxy, proxyUser, proxyPass, proxyBypass, localUrls); });
         }
 
-        public static string getUrl(string apiKey, string country, DateTime date)
+        /// <summary>
+        /// Return an AbstractAPI Holidays API URL, given an API key, country, and date
+        /// </summary>
+        /// <param name="apiKey"></param>
+        /// <param name="country"></param>
+        /// <param name="date"></param>
+        /// <returns></returns>
+        public static string GetUrl(string apiKey, string country, DateTime date)
         {
             return string.Concat("https://holidays.abstractapi.com/v1/?api_key=", apiKey, "&country=", country, "&year=", date.Year, "&month=", date.Month, "&day=", date.Day);
         }
 
-        public static async Task<List<AbstractApiHolidays>> getHolidays(string apiKey, string country, DateTime date)
+        /// <summary>
+        /// Retrieve an AbstractAPI Holidays API result, given API key, country, and date
+        /// </summary>
+        /// <param name="apiKey"></param>
+        /// <param name="country"></param>
+        /// <param name="date"></param>
+        /// <returns></returns>
+        public static async Task<List<AbstractApiHolidays>> GetHolidays(string apiKey, string country, DateTime date)
         {
-            return await getUrl(apiKey,country,date).GetJsonAsync<List<AbstractApiHolidays>>();
+            return await GetUrl(apiKey, country, date).GetJsonAsync<List<AbstractApiHolidays>>();
         }
 
     }
