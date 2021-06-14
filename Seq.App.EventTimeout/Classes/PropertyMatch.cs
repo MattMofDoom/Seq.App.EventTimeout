@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Seq.App.EventTimeout
+namespace Seq.App.EventTimeout.Classes
 {
     /// <summary>
     ///     Property matching methods

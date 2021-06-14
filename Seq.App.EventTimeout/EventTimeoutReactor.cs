@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Timers;
+using Seq.App.EventTimeout.Classes;
 using Seq.Apps;
 using Seq.Apps.LogEvents;
 
@@ -49,11 +50,13 @@ namespace Seq.App.EventTimeout
 
         // Count of matches
         private int _matched;
+        private string _priority;
         private Dictionary<string, string> _properties;
         private string _proxy;
         private string _proxyPass;
         private string _proxyUser;
         private bool _repeatTimeout;
+        private string _responders;
         private int _retryCount;
         private bool _skippedShowtime;
         private string _startFormat = "H:mm:ss";
@@ -65,15 +68,14 @@ namespace Seq.App.EventTimeout
         private LogEventLevel _timeoutLogLevel;
         private Timer _timer;
         private bool _useHolidays;
-        private bool _useProxy; 
-        
-        // ReSharper disable MemberCanBePrivate.Global
+        private bool _useProxy; // ReSharper disable MemberCanBePrivate.Global
+
         // ReSharper disable UnusedAutoPropertyAccessor.Global
         // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
         [SeqAppSetting(
             DisplayName = "Diagnostic logging",
-            HelpText = "Send extra diagnostic logging to the stream.")]
-        public bool Diagnostics { get; set; }
+            HelpText = "Send extra diagnostic logging to the stream. Enabled by default.")]
+        public bool Diagnostics { get; set; } = true;
 
         [SeqAppSetting(
             DisplayName = "Start time",
@@ -87,16 +89,39 @@ namespace Seq.App.EventTimeout
 
         [SeqAppSetting(
             DisplayName = "Timeout interval (seconds)",
-            HelpText = "Time period in which a matching log entry must be seen. After this, an alert will be raised.",
+            HelpText =
+                "Time period in which a matching log entry must be seen. After this, an alert will be raised. Default 60.",
             InputType = SettingInputType.Integer)]
-        public int Timeout { get; set; }
+        public int Timeout { get; set; } = 60;
 
         [SeqAppSetting(
             DisplayName = "Repeat timeout",
             HelpText =
-                "Optionally re-arm the timeout after a match, within the start/end time parameters - useful for a 'heartbeat' style alert.",
+                "Optionally re-arm the timeout after a match, within the start/end time parameters - useful for a 'heartbeat' style alert. Disabled by default.",
             IsOptional = true)]
-        public bool RepeatTimeout { get; set; }
+        public bool RepeatTimeout { get; set; } = false;
+
+        [SeqAppSetting(
+            DisplayName = "Suppression interval (seconds)",
+            HelpText =
+                "If an alert has been raised, further alerts will be suppressed for this time. Will also suppress repeating timeout matches. Default 60.",
+            InputType = SettingInputType.Integer)]
+        public int SuppressionTime { get; set; } = 60;
+
+        [SeqAppSetting(DisplayName = "Log level for timeouts",
+            HelpText = "Verbose, Debug, Information, Warning, Error, Fatal. Defaults to Error.",
+            IsOptional = true)]
+        public string TimeoutLogLevel { get; set; }
+
+        [SeqAppSetting(DisplayName = "Priority for timeouts",
+            HelpText = "Optional Priority property to pass for timeouts, for use with other apps.",
+            IsOptional = true)]
+        public string Priority { get; set; }
+
+        [SeqAppSetting(DisplayName = "Responders for timeouts",
+            HelpText = "Optional Responders property to pass for timeouts, for use with other apps.",
+            IsOptional = true)]
+        public string Responders { get; set; }
 
         [SeqAppSetting(
             DisplayName = "Days of week",
@@ -117,17 +142,6 @@ namespace Seq.App.EventTimeout
             IsOptional = true)]
         public string ExcludeDaysOfMonth { get; set; }
 
-        [SeqAppSetting(
-            DisplayName = "Suppression interval (seconds)",
-            HelpText =
-                "If an alert has been raised, further alerts will be suppressed for this time. Will also suppress repeating timeout matches.",
-            InputType = SettingInputType.Integer)]
-        public int SuppressionTime { get; set; }
-
-        [SeqAppSetting(DisplayName = "Log level for timeouts",
-            HelpText = "Verbose, Debug, Information, Warning, Error, Fatal.",
-            IsOptional = true)]
-        public string TimeoutLogLevel { get; set; }
 
         [SeqAppSetting(
             DisplayName = "Property 1 name",
@@ -211,7 +225,7 @@ namespace Seq.App.EventTimeout
         [SeqAppSetting(
             DisplayName = "Holidays - use Holidays API for public holiday detection",
             HelpText = "Connect to the AbstractApi Holidays service to detect public holidays.")]
-        public bool UseHolidays { get; set; }
+        public bool UseHolidays { get; set; } = false;
 
         [SeqAppSetting(
             DisplayName = "Holidays - Retry count",
@@ -272,7 +286,7 @@ namespace Seq.App.EventTimeout
         [SeqAppSetting(
             DisplayName = "Holidays - proxy bypass local addresses",
             HelpText = "Bypass local addresses for proxy.")]
-        public bool BypassLocal { get; set; }
+        public bool BypassLocal { get; set; } = true;
 
         [SeqAppSetting(
             DisplayName = "Holidays - local addresses for proxy bypass",
@@ -485,7 +499,7 @@ namespace Seq.App.EventTimeout
                 LogEvent(LogEventLevel.Debug, "Validate Alert Description '{AlertDescription}' ...", AlertDescription);
 
             _alertDescription = string.IsNullOrWhiteSpace(AlertDescription)
-                ? _alertMessage + " : Generated by Seq " + Host.BaseUri
+                ? ""
                 : AlertDescription.Trim();
             if (_diagnostics)
                 LogEvent(LogEventLevel.Debug, "Alert Description '{AlertDescription}' will be used ...",
@@ -501,6 +515,12 @@ namespace Seq.App.EventTimeout
 
             if (string.IsNullOrWhiteSpace(TimeoutLogLevel)) TimeoutLogLevel = "Error";
             if (!Enum.TryParse(TimeoutLogLevel, out _timeoutLogLevel)) _timeoutLogLevel = LogEventLevel.Error;
+
+            if (!string.IsNullOrEmpty(Priority))
+                _priority = Priority;
+
+            if (!string.IsNullOrEmpty(Responders))
+                _responders = Responders;
 
             if (_diagnostics)
                 LogEvent(LogEventLevel.Debug, "Log level {loglevel} will be used for timeouts on {Instance} ...",
@@ -569,8 +589,10 @@ namespace Seq.App.EventTimeout
                         var suppressDiff = timeNow - _lastLog;
                         if (_isAlert && suppressDiff.TotalSeconds < _suppressionTime.TotalSeconds) return;
 
-                        //Log event                    
-                        LogEvent(_timeoutLogLevel, "{Message} : {Description}", _alertMessage, _alertDescription);
+                        //Log event
+                        LogEvent(_timeoutLogLevel,
+                            string.IsNullOrEmpty(_alertDescription) ? "{Message}" : "{Message} : {Description}",
+                            _alertMessage, _alertDescription);
                         _lastLog = timeNow;
                         _isAlert = true;
                     }
@@ -794,8 +816,8 @@ namespace Seq.App.EventTimeout
                         foreach (var holiday in result)
                             LogEvent(LogEventLevel.Debug,
                                 "Holiday Name: {Name}, Local Name {LocalName}, Start {LocalStart}, Start UTC {Start}, End UTC {End}, Type {Type}, Location string {Location}, Locations parsed {Locations} ...",
-                                holiday.Name, holiday.Name_local, holiday.LocalStart, holiday.UtcStart, holiday.UtcEnd,
-                                holiday.Type, holiday.Location, holiday.Locations.ToArray());
+                                holiday.name, holiday.name_local, holiday.LocalStart, holiday.UtcStart, holiday.UtcEnd,
+                                holiday.type, holiday.location, holiday.Locations.ToArray());
                     }
 
                     LogEvent(LogEventLevel.Debug, "Holidays retrieved and validated {holidayCount} ...",
@@ -803,8 +825,8 @@ namespace Seq.App.EventTimeout
                     foreach (var holiday in _holidays)
                         LogEvent(LogEventLevel.Debug,
                             "Holiday Name: {Name}, Local Name {LocalName}, Start {LocalStart}, Start UTC {Start}, End UTC {End}, Type {Type}, Location string {Location}, Locations parsed {Locations} ...",
-                            holiday.Name, holiday.Name_local, holiday.LocalStart, holiday.UtcStart, holiday.UtcEnd,
-                            holiday.Type, holiday.Location, holiday.Locations.ToArray());
+                            holiday.name, holiday.name_local, holiday.LocalStart, holiday.UtcStart, holiday.UtcEnd,
+                            holiday.type, holiday.location, holiday.Locations.ToArray());
 
                     _isUpdating = false;
                     if (!_isShowtime) UtcRollover(utcDate, true);
@@ -893,9 +915,12 @@ namespace Seq.App.EventTimeout
 
             if (_isTags)
                 Log.ForContext(nameof(Tags), _tags).ForContext("AppName", App.Title)
+                    .ForContext(nameof(Priority), _priority).ForContext(nameof(Responders), _responders)
                     .Write((Serilog.Events.LogEventLevel) logLevel, message, logArgs);
             else
-                Log.ForContext("AppName", App.Title).Write((Serilog.Events.LogEventLevel) logLevel, message, logArgs);
+                Log.ForContext("AppName", App.Title).ForContext(nameof(Priority), _priority)
+                    .ForContext(nameof(Responders), _responders)
+                    .Write((Serilog.Events.LogEventLevel) logLevel, message, logArgs);
         }
 
         /// <summary>
@@ -919,9 +944,11 @@ namespace Seq.App.EventTimeout
 
             if (_isTags)
                 Log.ForContext(nameof(Tags), _tags).ForContext("AppName", App.Title)
+                    .ForContext(nameof(Priority), _priority).ForContext(nameof(Responders), _responders)
                     .Write((Serilog.Events.LogEventLevel) logLevel, exception, message, logArgs);
             else
-                Log.ForContext("AppName", App.Title)
+                Log.ForContext("AppName", App.Title).ForContext(nameof(Priority), _priority)
+                    .ForContext(nameof(Responders), _responders)
                     .Write((Serilog.Events.LogEventLevel) logLevel, exception, message, logArgs);
         }
     }

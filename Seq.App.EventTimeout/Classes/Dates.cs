@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using Seq.App.EventTimeout.Enums;
 
-namespace Seq.App.EventTimeout
+namespace Seq.App.EventTimeout.Classes
 {
     /// <summary>
     ///     Date calculations for inclusions/exclusions

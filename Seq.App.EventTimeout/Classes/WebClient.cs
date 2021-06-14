@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Flurl.Http;
 
-namespace Seq.App.EventTimeout
+namespace Seq.App.EventTimeout.Classes
 {
     /// <summary>
     ///     Web access methods

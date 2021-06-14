@@ -1,4 +1,4 @@
-﻿namespace Seq.App.EventTimeout
+﻿namespace Seq.App.EventTimeout.Enums
 {
     /// <summary>
     ///     Day order within a date expression

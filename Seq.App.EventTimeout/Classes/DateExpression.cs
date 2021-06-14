@@ -1,6 +1,7 @@
 ﻿using System;
+using Seq.App.EventTimeout.Enums;
 
-namespace Seq.App.EventTimeout
+namespace Seq.App.EventTimeout.Classes
 {
     /// <summary>
     ///     Date Expression comprising the day order, day type, day of week, and day of month
