@@ -28,7 +28,7 @@
 - Alert description is now properly optional
 - Priority and Responders properties added for integration with other apps
 - Moved config items for clarity
-- Correctly set camel case for AbstractAPI</PackageReleaseNotes>
+- Correctly deserialize AbstractAPI</PackageReleaseNotes>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
