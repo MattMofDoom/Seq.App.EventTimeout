@@ -816,8 +816,8 @@ namespace Seq.App.EventTimeout
                         foreach (var holiday in result)
                             LogEvent(LogEventLevel.Debug,
                                 "Holiday Name: {Name}, Local Name {LocalName}, Start {LocalStart}, Start UTC {Start}, End UTC {End}, Type {Type}, Location string {Location}, Locations parsed {Locations} ...",
-                                holiday.name, holiday.name_local, holiday.LocalStart, holiday.UtcStart, holiday.UtcEnd,
-                                holiday.type, holiday.location, holiday.Locations.ToArray());
+                                holiday.Name, holiday.Name_Local, holiday.LocalStart, holiday.UtcStart, holiday.UtcEnd,
+                                holiday.Type, holiday.Location, holiday.Locations.ToArray());
                     }
 
                     LogEvent(LogEventLevel.Debug, "Holidays retrieved and validated {holidayCount} ...",
@@ -825,8 +825,8 @@ namespace Seq.App.EventTimeout
                     foreach (var holiday in _holidays)
                         LogEvent(LogEventLevel.Debug,
                             "Holiday Name: {Name}, Local Name {LocalName}, Start {LocalStart}, Start UTC {Start}, End UTC {End}, Type {Type}, Location string {Location}, Locations parsed {Locations} ...",
-                            holiday.name, holiday.name_local, holiday.LocalStart, holiday.UtcStart, holiday.UtcEnd,
-                            holiday.type, holiday.location, holiday.Locations.ToArray());
+                            holiday.Name, holiday.Name_Local, holiday.LocalStart, holiday.UtcStart, holiday.UtcEnd,
+                            holiday.Type, holiday.Location, holiday.Locations.ToArray());
 
                     _isUpdating = false;
                     if (!_isShowtime) UtcRollover(utcDate, true);

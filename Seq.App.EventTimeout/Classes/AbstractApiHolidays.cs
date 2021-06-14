@@ -8,7 +8,8 @@ namespace Seq.App.EventTimeout.Classes
     /// <summary>
     ///     AbstractAPI Holidays API format
     /// </summary>
-    public abstract class AbstractApiHolidays
+    // ReSharper disable once ClassNeverInstantiated.Global
+    public class AbstractApiHolidays
     {
         /// <summary>
         ///     AbstractAPI Holidays API format
@@ -26,34 +27,35 @@ namespace Seq.App.EventTimeout.Classes
         /// <param name="date_day"></param>
         /// <param name="week_day"></param>
         // ReSharper disable InconsistentNaming
-        protected AbstractApiHolidays(string name, string name_local, string language, string description,
+        // ReSharper disable once ArrangeTypeMemberModifiers
+        public AbstractApiHolidays(string name, string name_local, string language, string description,
             string country,
             string location, string type, string date, string date_year, string date_month, string date_day,
             string week_day)
         {
-            this.name = name;
-            this.name_local = name_local;
-            this.language = language;
-            this.description = description;
-            this.location = location;
-            if (this.location.Contains(" - "))
-                Locations = this.location
-                    .Substring(this.location.IndexOf(" - ", StringComparison.Ordinal) + 3,
-                        this.location.Length - this.location.IndexOf(" - ", StringComparison.Ordinal) - 3)
+            Name = name;
+            Name_Local = name_local;
+            Language = language;
+            Description = description;
+            Location = location;
+            if (Location.Contains(" - "))
+                Locations = Location
+                    .Substring(Location.IndexOf(" - ", StringComparison.Ordinal) + 3,
+                        Location.Length - Location.IndexOf(" - ", StringComparison.Ordinal) - 3)
                     .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToList();
             else
-                Locations = this.location.Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                Locations = Location.Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
                     .Select(t => t.Trim())
                     .ToList();
 
-            this.country = country;
-            this.type = type;
-            this.date = date;
-            this.date_year = date_year;
-            this.date_month = date_month;
-            this.date_day = date_day;
-            this.week_day = week_day;
-            LocalStart = DateTime.ParseExact(this.date, "M/d/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None);
+            Country = country;
+            Type = type;
+            Date = date;
+            DateYear = date_year;
+            DateMonth = date_month;
+            DateDay = date_day;
+            WeekDay = week_day;
+            LocalStart = DateTime.ParseExact(Date, "M/d/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None);
             UtcStart = LocalStart.ToUniversalTime();
             UtcEnd = LocalStart.AddDays(1).ToUniversalTime();
         }
@@ -61,21 +63,21 @@ namespace Seq.App.EventTimeout.Classes
         // ReSharper disable MemberCanBePrivate.Global
         // ReSharper disable UnusedAutoPropertyAccessor.Local
         // ReSharper disable UnusedAutoPropertyAccessor.Global
-        public string name { get; }
-        public string name_local { get; }
-        public string language { get; }
-        public string description { get; }
-        public string country { get; }
-        public string location { get; }
+        public string Name { get; }
+        public string Name_Local { get; }
+        public string Language { get; }
+        public string Description { get; }
+        public string Country { get; }
+        public string Location { get; }
         public List<string> Locations { get; }
-        public string type { get; }
+        public string Type { get; }
         public DateTime LocalStart { get; }
         public DateTime UtcStart { get; }
         public DateTime UtcEnd { get; }
-        public string date { get; }
-        public string date_year { get; }
-        public string date_month { get; }
-        public string date_day { get; }
-        public string week_day { get; }
+        public string Date { get; }
+        public string DateYear { get; }
+        public string DateMonth { get; }
+        public string DateDay { get; }
+        public string WeekDay { get; }
     }
 }
