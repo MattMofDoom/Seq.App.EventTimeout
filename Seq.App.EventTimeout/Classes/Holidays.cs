@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
-namespace Seq.App.EventTimeout
+namespace Seq.App.EventTimeout.Classes
 {
     /// <summary>
     ///     Holidays methods
@@ -48,7 +48,7 @@ namespace Seq.App.EventTimeout
                 if (holidayMatch.Count > 0)
                     // ReSharper disable once UnusedVariable
                     foreach (var match in holidayMatch.Where(match =>
-                        holiday.Type.IndexOf(match, StringComparison.OrdinalIgnoreCase) >= 0))
+                        holiday.type.IndexOf(match, StringComparison.OrdinalIgnoreCase) >= 0))
                         hasType = true;
 
                 if (localeMatch.Count > 0)
@@ -58,7 +58,7 @@ namespace Seq.App.EventTimeout
                         0))
                         hasRegion = true;
 
-                if (!includeBank && holiday.Name.IndexOf("Bank Holiday", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (!includeBank && holiday.name.IndexOf("Bank Holiday", StringComparison.OrdinalIgnoreCase) >= 0)
                     isBank = true;
 
                 if (!includeWeekends && (holiday.LocalStart.DayOfWeek == DayOfWeek.Sunday ||

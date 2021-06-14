@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Timers;
+using Seq.App.EventTimeout.Classes;
 using Seq.Apps;
 using Seq.Apps.LogEvents;
 
@@ -68,6 +69,7 @@ namespace Seq.App.EventTimeout
         private Timer _timer;
         private bool _useHolidays;
         private bool _useProxy; // ReSharper disable MemberCanBePrivate.Global
+
         // ReSharper disable UnusedAutoPropertyAccessor.Global
         // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
         [SeqAppSetting(
@@ -814,8 +816,8 @@ namespace Seq.App.EventTimeout
                         foreach (var holiday in result)
                             LogEvent(LogEventLevel.Debug,
                                 "Holiday Name: {Name}, Local Name {LocalName}, Start {LocalStart}, Start UTC {Start}, End UTC {End}, Type {Type}, Location string {Location}, Locations parsed {Locations} ...",
-                                holiday.Name, holiday.Name_local, holiday.LocalStart, holiday.UtcStart, holiday.UtcEnd,
-                                holiday.Type, holiday.Location, holiday.Locations.ToArray());
+                                holiday.name, holiday.name_local, holiday.LocalStart, holiday.UtcStart, holiday.UtcEnd,
+                                holiday.type, holiday.location, holiday.Locations.ToArray());
                     }
 
                     LogEvent(LogEventLevel.Debug, "Holidays retrieved and validated {holidayCount} ...",
@@ -823,8 +825,8 @@ namespace Seq.App.EventTimeout
                     foreach (var holiday in _holidays)
                         LogEvent(LogEventLevel.Debug,
                             "Holiday Name: {Name}, Local Name {LocalName}, Start {LocalStart}, Start UTC {Start}, End UTC {End}, Type {Type}, Location string {Location}, Locations parsed {Locations} ...",
-                            holiday.Name, holiday.Name_local, holiday.LocalStart, holiday.UtcStart, holiday.UtcEnd,
-                            holiday.Type, holiday.Location, holiday.Locations.ToArray());
+                            holiday.name, holiday.name_local, holiday.LocalStart, holiday.UtcStart, holiday.UtcEnd,
+                            holiday.type, holiday.location, holiday.Locations.ToArray());
 
                     _isUpdating = false;
                     if (!_isShowtime) UtcRollover(utcDate, true);

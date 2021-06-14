@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Seq.App.EventTimeout
+namespace Seq.App.EventTimeout.Enums
 {
     /// <summary>
     ///     Match days of week, or none
