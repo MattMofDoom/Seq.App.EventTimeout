@@ -48,7 +48,7 @@ namespace Seq.App.EventTimeout.Classes
                 if (holidayMatch.Count > 0)
                     // ReSharper disable once UnusedVariable
                     foreach (var match in holidayMatch.Where(match =>
-                        holiday.type.IndexOf(match, StringComparison.OrdinalIgnoreCase) >= 0))
+                        holiday.Type.IndexOf(match, StringComparison.OrdinalIgnoreCase) >= 0))
                         hasType = true;
 
                 if (localeMatch.Count > 0)
@@ -58,7 +58,7 @@ namespace Seq.App.EventTimeout.Classes
                         0))
                         hasRegion = true;
 
-                if (!includeBank && holiday.name.IndexOf("Bank Holiday", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (!includeBank && holiday.Name.IndexOf("Bank Holiday", StringComparison.OrdinalIgnoreCase) >= 0)
                     isBank = true;
 
                 if (!includeWeekends && (holiday.LocalStart.DayOfWeek == DayOfWeek.Sunday ||
