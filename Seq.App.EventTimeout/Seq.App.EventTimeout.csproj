@@ -2,12 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <!--<GeneratePackageOnBuild>true</GeneratePackageOnBuild>-->
     <ApplicationIcon>alert.ico</ApplicationIcon>
     <Authors>Matt Marlor</Authors>
     <Copyright></Copyright>
     <VersionSuffix>$([System.DateTime]::UtcNow.ToString(mmff))</VersionSuffix>
-    <!--<AssemblyVersion>1.2.3.0</AssemblyVersion>-->
     <Version>1.4.2</Version>
     <AssemblyVersion Condition=" '$(VersionSuffix)' == '' ">$(Version).1</AssemblyVersion>
     <AssemblyVersion Condition=" '$(VersionSuffix)' != '' ">$(Version).$(VersionSuffix)</AssemblyVersion>
@@ -29,8 +28,8 @@
 - Priority and Responders properties added for integration with other apps
 - Moved config items for clarity
 - Correctly deserialize AbstractAPI</PackageReleaseNotes>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <!--<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>-->
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -63,8 +62,9 @@
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
-    <None Include="./bin/release/$(TargetFramework)/Flurl.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
-    <None Include="./bin/release/$(TargetFramework)/Flurl.Http.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
+    <None Include="./obj/publish/**/*" Exclude="./obj/publish/$(MSBuildProjectName).dll;./obj/publish/Seq.Apps.dll;./obj/publish/Serilog.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
+    <!--<None Include="./bin/release/$(TargetFramework)/Flurl.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
+    <None Include="./bin/release/$(TargetFramework)/Flurl.Http.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />-->
   </ItemGroup>
 
 </Project>
