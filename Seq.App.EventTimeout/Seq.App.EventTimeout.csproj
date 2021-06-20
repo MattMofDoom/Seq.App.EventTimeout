@@ -28,8 +28,7 @@
 - Priority and Responders properties added for integration with other apps
 - Moved config items for clarity
 - Correctly deserialize AbstractAPI</PackageReleaseNotes>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <!--<EnableNETAnalyzers>true</EnableNETAnalyzers>-->
+<!--    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>-->
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -44,15 +43,15 @@
     </PackageReference>
     <PackageReference Include="Flurl.Http" Version="3.2.0">
       <GeneratePathProperty>true</GeneratePathProperty>
+      <Pack>true</Pack>
     </PackageReference>
     <PackageReference Include="Seq.Apps" Version="5.1.0" />
   </ItemGroup>
 
-<!--  <Target Name="Flurl" AfterTargets="Build">
+  <Target Name="Flurl" AfterTargets="Build">
     <Copy SourceFiles="$(PkgFlurl)\lib\$(TargetFramework)\Flurl.dll" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(PkgFlurl_Http)\lib\$(TargetFramework)\Flurl.Http.dll" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
-  </Target>-->
-  
+  </Target>
   <ItemGroup>
     <None Include="alert.png">
       <Pack>True</Pack>
@@ -62,7 +61,7 @@
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
-    <None Include="./obj/publish/**/*" Exclude="./obj/publish/$(MSBuildProjectName).dll;./obj/publish/Seq.Apps.dll;./obj/publish/Serilog.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
+    <None Include="$(OutDir)/**/*" Exclude="$(OutDir)/$(MSBuildProjectName).dll;$(OutDir)/Seq.Apps.dll;$(OutDir)/Serilog.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
     <!--<None Include="./bin/release/$(TargetFramework)/Flurl.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
     <None Include="./bin/release/$(TargetFramework)/Flurl.Http.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />-->
   </ItemGroup>
