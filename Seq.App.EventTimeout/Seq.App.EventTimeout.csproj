@@ -28,8 +28,8 @@
 - Priority and Responders properties added for integration with other apps
 - Moved config items for clarity
 - Correctly deserialize AbstractAPI</PackageReleaseNotes>
-    <!--<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <EnableNETAnalyzers>true</EnableNETAnalyzers>-->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <!--<EnableNETAnalyzers>true</EnableNETAnalyzers>-->
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
