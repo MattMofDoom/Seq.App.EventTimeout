@@ -25,9 +25,9 @@ namespace Seq.App.EventTimeout.Tests
                 Diagnostics = true,
                 StartTime = DateTime.Now.AddSeconds(1).ToString("H:mm:ss"),
                 EndTime = DateTime.Now.AddMinutes(1).ToString("H:mm:ss"),
-                Timeout = 10,
+                Timeout = 1,
                 RepeatTimeout = false,
-                SuppressionTime = 50,
+                SuppressionTime = 59,
                 TimeoutLogLevel = "Error",
                 Priority = "P1",
                 Responders = "Everyone Ever",
@@ -44,7 +44,7 @@ namespace Seq.App.EventTimeout.Tests
             Assert.True(app.IsShowtime);
             var evt = Some.LogEvent();
             app.On(evt);
-            Thread.Sleep(10000);
+            Thread.Sleep(2000);
             Assert.True(app.IsAlert);
         }
 
