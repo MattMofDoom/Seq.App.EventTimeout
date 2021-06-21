@@ -9,7 +9,7 @@ using Seq.Apps.LogEvents;
 
 namespace Seq.App.EventTimeout
 {
-    [SeqApp("Event Timeout",
+    [SeqApp("Event Timeout", AllowReprocessing = false, 
         Description =
             "Super-powered monitoring of Seq events with start/end times, timeout and suppression intervals, matching multiple properties, day of week and day of month inclusion/exclusion, and optional holiday API!")]
     // ReSharper disable once UnusedType.Global
@@ -305,6 +305,8 @@ namespace Seq.App.EventTimeout
             HelpText = "Username for proxy authentication.",
             IsOptional = true,
             InputType = SettingInputType.Password)]
+        
+        
         public string ProxyPass { get; set; }
 
         public void On(Event<LogEventData> evt)
