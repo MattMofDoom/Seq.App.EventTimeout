@@ -99,7 +99,7 @@ namespace Seq.App.EventTimeout
             HelpText =
                 "Optionally re-arm the timeout after a match, within the start/end time parameters - useful for a 'heartbeat' style alert. Disabled by default.",
             IsOptional = true)]
-        public bool RepeatTimeout { get; set; } = false;
+        public bool RepeatTimeout { get; set; }
 
         [SeqAppSetting(
             DisplayName = "Suppression interval (seconds)",

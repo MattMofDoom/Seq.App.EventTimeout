@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using Seq.Apps;
 using Seq.Apps.LogEvents;
+// ReSharper disable MemberCanBePrivate.Global
+// ReSharper disable UnusedParameter.Global
 
 namespace Seq.App.EventTimeout.Tests.Support
 {
@@ -38,12 +39,20 @@ namespace Seq.App.EventTimeout.Tests.Support
                 {"Number", 42}
             };
 
-            if (include != null)
-            {
-                foreach (var includedProperty in include)
+            if (include == null)
+                return new Event<LogEventData>(id, EventType(), timestamp, new LogEventData
                 {
-                    properties.Add(includedProperty.Key, includedProperty.Value);
-                }
+                    Exception = null,
+                    Id = id,
+                    Level = level,
+                    LocalTimestamp = new DateTimeOffset(timestamp),
+                    MessageTemplate = "Hello, {Who}",
+                    RenderedMessage = "Hello, world",
+                    Properties = properties
+                });
+            foreach (var (key, value) in include)
+            {
+                properties.Add(key, value);
             }
 
             return new Event<LogEventData>(id, EventType(), timestamp, new LogEventData

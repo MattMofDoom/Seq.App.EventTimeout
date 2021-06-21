@@ -6,13 +6,6 @@
     <ApplicationIcon>alert.ico</ApplicationIcon>
     <Authors>Matt Marlor</Authors>
     <Copyright></Copyright>
-    <VersionSuffix>$([System.DateTime]::UtcNow.ToString(mmff))</VersionSuffix>
-    <Version>1.4.2</Version>
-    <AssemblyVersion Condition=" '$(VersionSuffix)' == '' ">$(Version).1</AssemblyVersion>
-    <AssemblyVersion Condition=" '$(VersionSuffix)' != '' ">$(Version).$(VersionSuffix)</AssemblyVersion>
-    <FileVersion Condition=" '$(VersionSuffix)' == '' ">$(Version).0</FileVersion>
-    <FileVersion Condition=" '$(VersionSuffix)' != '' ">$(Version).$(VersionSuffix)</FileVersion>
-
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>Super-powered monitoring of Seq events with start/end times, timeout and suppression intervals, matching multiple properties, day of week and day of month inclusion/exclusion, and optional holiday API!</Description>
     <PackageLicenseUrl></PackageLicenseUrl>
@@ -27,8 +20,10 @@
 - Alert description is now properly optional
 - Priority and Responders properties added for integration with other apps
 - Moved config items for clarity
-- Correctly deserialize AbstractAPI</PackageReleaseNotes>
-<!--    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>-->
+- Correctly deserialize AbstractAPI
+- Add unit tests</PackageReleaseNotes>
+    <Version>1.4.3</Version>
+    <!--    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>-->
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">

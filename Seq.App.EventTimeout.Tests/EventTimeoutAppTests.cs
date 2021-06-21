@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Seq.App.EventTimeout.Classes;
-using Seq.App.EventTimeout.Enums;
 using Seq.App.EventTimeout.Tests.Support;
 using Xunit;
 using Xunit.Abstractions;
@@ -21,7 +20,7 @@ namespace Seq.App.EventTimeout.Tests
         [Fact]
         public void AppTriggersTimeouts()
         {
-            var app = new EventTimeoutReactor()
+            var app = new EventTimeoutReactor
             {
                 Diagnostics = true,
                 StartTime = DateTime.Now.AddSeconds(1).ToString("H:mm:ss"),
@@ -56,8 +55,8 @@ namespace Seq.App.EventTimeout.Tests
                 "Local holiday", DateTime.Today.ToString("MM/dd/yyyy"), DateTime.Today.Year.ToString(),
                 DateTime.Today.Month.ToString(), DateTime.Today.Day.ToString(), DateTime.Today.DayOfWeek.ToString());
 
-            Assert.True(Holidays.ValidateHolidays(new List<AbstractApiHolidays>() {holiday},
-                new List<string>() {"National", "Local"}, new List<string>() {"Australia", "New South Wales"}, false,
+            Assert.True(Holidays.ValidateHolidays(new List<AbstractApiHolidays> {holiday},
+                new List<string> {"National", "Local"}, new List<string> {"Australia", "New South Wales"}, false,
                 false).Count > 0);
         }
 
