@@ -33,8 +33,8 @@ namespace Seq.App.EventTimeout
         private bool _includeBank;
         private List<int> _includeDays;
         private bool _includeWeekends;
-        private bool _isAlert;
-        private bool _isShowtime;
+        public bool IsAlert;
+        public bool IsShowtime;
         private bool _isTags;
         private bool _isUpdating;
         private DateTime _lastCheck;
@@ -99,7 +99,7 @@ namespace Seq.App.EventTimeout
             HelpText =
                 "Optionally re-arm the timeout after a match, within the start/end time parameters - useful for a 'heartbeat' style alert. Disabled by default.",
             IsOptional = true)]
-        public bool RepeatTimeout { get; set; } = false;
+        public bool RepeatTimeout { get; set; }
 
         [SeqAppSetting(
             DisplayName = "Suppression interval (seconds)",
@@ -317,7 +317,7 @@ namespace Seq.App.EventTimeout
             var properties = 0;
             var matches = 0;
 
-            if (_matched != 0 && !_repeatTimeout || !_isShowtime) return;
+            if (_matched != 0 && !_repeatTimeout || !IsShowtime) return;
             foreach (var property in _properties)
             {
                 properties++;
@@ -549,10 +549,10 @@ namespace Seq.App.EventTimeout
             if (_lastDay < localDate) RetrieveHolidays(localDate, timeNow);
 
             //We can only enter showtime if we're not currently retrying holidays, but existing showtimes will continue to monitor
-            if ((!_useHolidays || _isShowtime || !_isShowtime && !_isUpdating) && timeNow >= _startTime &&
+            if ((!_useHolidays || IsShowtime || !IsShowtime && !_isUpdating) && timeNow >= _startTime &&
                 timeNow < _endTime)
             {
-                if (!_isShowtime && (!_daysOfWeek.Contains(_startTime.DayOfWeek) ||
+                if (!IsShowtime && (!_daysOfWeek.Contains(_startTime.DayOfWeek) ||
                                      _includeDays.Count > 0 && !_includeDays.Contains(_startTime.Day) ||
                                      _excludeDays.Contains(_startTime.Day)))
                 {
@@ -569,14 +569,14 @@ namespace Seq.App.EventTimeout
                 else
                 {
                     //Showtime! - Evaluate whether we have matched properties with log events
-                    if (!_isShowtime)
+                    if (!IsShowtime)
                     {
                         LogEvent(LogEventLevel.Debug,
                             "UTC Start Time {Time} ({DayOfWeek}), monitoring for {MatchText} within {Timeout} seconds, until UTC End time {EndTime} ({EndDayOfWeek}) ...",
                             _startTime.ToShortTimeString(), _startTime.DayOfWeek,
                             PropertyMatch.MatchConditions(_properties), _timeOut.TotalSeconds,
                             _endTime.ToShortTimeString(), _endTime.DayOfWeek);
-                        _isShowtime = true;
+                        IsShowtime = true;
                         _lastCheck = timeNow;
                         _lastMatchLog = timeNow;
                     }
@@ -587,14 +587,15 @@ namespace Seq.App.EventTimeout
                         (_matched == 0 || _repeatTimeout && _matched == _lastMatched))
                     {
                         var suppressDiff = timeNow - _lastLog;
-                        if (_isAlert && suppressDiff.TotalSeconds < _suppressionTime.TotalSeconds) return;
+                        if (IsAlert && suppressDiff.TotalSeconds < _suppressionTime.TotalSeconds) return;
 
                         //Log event
                         LogEvent(_timeoutLogLevel,
                             string.IsNullOrEmpty(_alertDescription) ? "{Message}" : "{Message} : {Description}",
                             _alertMessage, _alertDescription);
+                        
                         _lastLog = timeNow;
-                        _isAlert = true;
+                        IsAlert = true;
                     }
 
                     //Grab a snapshot of the match count for next evaluation
@@ -604,7 +605,7 @@ namespace Seq.App.EventTimeout
             else if (timeNow < _startTime || timeNow >= _endTime)
             {
                 //Showtime can end even if we're retrieving holidays
-                if (_isShowtime)
+                if (IsShowtime)
                     LogEvent(LogEventLevel.Debug,
                         "UTC End Time {Time} ({DayOfWeek}), no longer monitoring for {MatchText}, total matches {Matches} ...",
                         _endTime.ToShortTimeString(), _endTime.DayOfWeek, PropertyMatch.MatchConditions(_properties),
@@ -616,14 +617,14 @@ namespace Seq.App.EventTimeout
                 _lastMatchLog = timeNow;
                 _matched = 0;
                 _lastMatched = 0;
-                _isAlert = false;
-                _isShowtime = false;
+                IsAlert = false;
+                IsShowtime = false;
                 _cannotMatchAlerted = false;
                 _skippedShowtime = false;
             }
 
             //We can only do UTC rollover if we're not currently retrying holidays and it's not during showtime
-            if (_isShowtime || _useHolidays && _isUpdating || _startTime > timeNow ||
+            if (IsShowtime || _useHolidays && _isUpdating || _startTime > timeNow ||
                 !string.IsNullOrEmpty(_testDate)) return;
             UtcRollover(timeNow);
             //Take the opportunity to refresh include/exclude days to allow for month rollover
@@ -829,7 +830,7 @@ namespace Seq.App.EventTimeout
                             holiday.Type, holiday.Location, holiday.Locations.ToArray());
 
                     _isUpdating = false;
-                    if (!_isShowtime) UtcRollover(utcDate, true);
+                    if (!IsShowtime) UtcRollover(utcDate, true);
                 }
                 catch (Exception ex)
                 {
@@ -846,7 +847,7 @@ namespace Seq.App.EventTimeout
                 _lastDay = localDate;
                 _errorCount = 0;
                 _holidays = new List<AbstractApiHolidays>();
-                if (_useHolidays && !_isShowtime) UtcRollover(utcDate, true);
+                if (_useHolidays && !IsShowtime) UtcRollover(utcDate, true);
             }
         }
 

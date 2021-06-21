@@ -2,18 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <!--<GeneratePackageOnBuild>true</GeneratePackageOnBuild>-->
     <ApplicationIcon>alert.ico</ApplicationIcon>
     <Authors>Matt Marlor</Authors>
     <Copyright></Copyright>
-    <VersionSuffix>$([System.DateTime]::UtcNow.ToString(mmff))</VersionSuffix>
-    <!--<AssemblyVersion>1.2.3.0</AssemblyVersion>-->
-    <Version>1.4.2</Version>
-    <AssemblyVersion Condition=" '$(VersionSuffix)' == '' ">$(Version).1</AssemblyVersion>
-    <AssemblyVersion Condition=" '$(VersionSuffix)' != '' ">$(Version).$(VersionSuffix)</AssemblyVersion>
-    <FileVersion Condition=" '$(VersionSuffix)' == '' ">$(Version).0</FileVersion>
-    <FileVersion Condition=" '$(VersionSuffix)' != '' ">$(Version).$(VersionSuffix)</FileVersion>
-
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>Super-powered monitoring of Seq events with start/end times, timeout and suppression intervals, matching multiple properties, day of week and day of month inclusion/exclusion, and optional holiday API!</Description>
     <PackageLicenseUrl></PackageLicenseUrl>
@@ -28,9 +20,10 @@
 - Alert description is now properly optional
 - Priority and Responders properties added for integration with other apps
 - Moved config items for clarity
-- Correctly deserialize AbstractAPI</PackageReleaseNotes>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+- Correctly deserialize AbstractAPI
+- Add unit tests</PackageReleaseNotes>
+    <Version>1.4.3</Version>
+    <!--    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>-->
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -45,15 +38,15 @@
     </PackageReference>
     <PackageReference Include="Flurl.Http" Version="3.2.0">
       <GeneratePathProperty>true</GeneratePathProperty>
+      <Pack>true</Pack>
     </PackageReference>
     <PackageReference Include="Seq.Apps" Version="5.1.0" />
   </ItemGroup>
 
-<!--  <Target Name="Flurl" AfterTargets="Build">
+  <Target Name="Flurl" AfterTargets="Build">
     <Copy SourceFiles="$(PkgFlurl)\lib\$(TargetFramework)\Flurl.dll" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(PkgFlurl_Http)\lib\$(TargetFramework)\Flurl.Http.dll" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
-  </Target>-->
-  
+  </Target>
   <ItemGroup>
     <None Include="alert.png">
       <Pack>True</Pack>
@@ -63,8 +56,9 @@
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
-    <None Include="./bin/release/$(TargetFramework)/Flurl.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
-    <None Include="./bin/release/$(TargetFramework)/Flurl.Http.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
+    <None Include="$(OutDir)/**/*" Exclude="$(OutDir)/$(MSBuildProjectName).dll;$(OutDir)/Seq.Apps.dll;$(OutDir)/Serilog.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
+    <!--<None Include="./bin/release/$(TargetFramework)/Flurl.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
+    <None Include="./bin/release/$(TargetFramework)/Flurl.Http.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />-->
   </ItemGroup>
 
 </Project>
