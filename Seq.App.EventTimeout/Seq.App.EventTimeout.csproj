@@ -21,8 +21,10 @@
 - Priority and Responders properties added for integration with other apps
 - Moved config items for clarity
 - Correctly deserialize AbstractAPI
-- Add unit tests</PackageReleaseNotes>
-    <Version>1.4.3</Version>
+- Add unit tests
+- Disable reprocessing events
+- Handle same start and end time as 24h block as expected</PackageReleaseNotes>
+    <Version>1.4.4</Version>
     <!--    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>-->
   </PropertyGroup>
 

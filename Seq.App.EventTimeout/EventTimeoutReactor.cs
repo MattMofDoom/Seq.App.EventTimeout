@@ -9,12 +9,13 @@ using Seq.Apps.LogEvents;
 
 namespace Seq.App.EventTimeout
 {
-    [SeqApp("Event Timeout",
+    [SeqApp("Event Timeout", AllowReprocessing = false, 
         Description =
             "Super-powered monitoring of Seq events with start/end times, timeout and suppression intervals, matching multiple properties, day of week and day of month inclusion/exclusion, and optional holiday API!")]
     // ReSharper disable once UnusedType.Global
     public class EventTimeoutReactor : SeqApp, ISubscribeTo<LogEventData>
     {
+        private bool _is24H;
         private string _alertDescription;
         private string _alertMessage;
         private string _apiKey;
@@ -28,7 +29,7 @@ namespace Seq.App.EventTimeout
         private int _errorCount;
         private List<int> _excludeDays;
         private List<string> _holidayMatch;
-        private List<AbstractApiHolidays> _holidays;
+        public List<AbstractApiHolidays> _holidays;
         private bool _includeApp;
         private bool _includeBank;
         private List<int> _includeDays;
@@ -305,6 +306,8 @@ namespace Seq.App.EventTimeout
             HelpText = "Username for proxy authentication.",
             IsOptional = true,
             InputType = SettingInputType.Password)]
+        
+        
         public string ProxyPass { get; set; }
 
         public void On(Event<LogEventData> evt)
@@ -407,11 +410,10 @@ namespace Seq.App.EventTimeout
                 LogEvent(LogEventLevel.Debug, "App name {AppName} will be included in alert message ...", App.Title);
 
             if (!DateTime.TryParseExact(StartTime, "H:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                // ReSharper disable once NotAccessedVariable
-                out var testStartTime))
+                out _))
             {
                 if (DateTime.TryParseExact(StartTime, "H:mm", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                    out testStartTime))
+                    out _))
                     _startFormat = "H:mm";
                 else
                     LogEvent(LogEventLevel.Debug,
@@ -419,11 +421,10 @@ namespace Seq.App.EventTimeout
             }
 
             if (!DateTime.TryParseExact(EndTime, "H:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                // ReSharper disable once NotAccessedVariable
-                out var testEndTime))
+                out _))
             {
                 if (DateTime.TryParseExact(EndTime, "H:mm", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                    out testEndTime))
+                    out _))
                     _endFormat = "H:mm";
                 else
                     LogEvent(LogEventLevel.Debug,
@@ -856,8 +857,10 @@ namespace Seq.App.EventTimeout
         /// </summary>
         /// <param name="utcDate"></param>
         /// <param name="isUpdateHolidays"></param>
-        private void UtcRollover(DateTime utcDate, bool isUpdateHolidays = false)
+        public void UtcRollover(DateTime utcDate, bool isUpdateHolidays = false)
         {
+            LogEvent(LogEventLevel.Debug, "UTC Time is currently {UtcTime} ...", DateTime.Now.ToUniversalTime().ToShortTimeString());
+            
             //Day rollover, we need to ensure the next start and end is in the future
             if (!string.IsNullOrEmpty(_testDate))
                 _startTime = DateTime.ParseExact(_testDate + " " + StartTime, "yyyy-M-d " + _startFormat,
@@ -867,18 +870,6 @@ namespace Seq.App.EventTimeout
                     .ParseExact(StartTime, _startFormat, CultureInfo.InvariantCulture, DateTimeStyles.None)
                     .ToUniversalTime();
 
-            //If we updated holidays, don't automatically put start time to the future
-            if (_startTime < utcDate && !isUpdateHolidays) _startTime = _startTime.AddDays(1);
-
-            //If there are holidays, account for them
-            // ReSharper disable once UnusedVariable
-            foreach (var holiday in _holidays.Where(holiday =>
-                _startTime >= holiday.UtcStart && _startTime < holiday.UtcEnd))
-            {
-                _startTime = _startTime.AddDays(1);
-                break;
-            }
-
             if (!string.IsNullOrEmpty(_testDate))
                 _endTime = DateTime.ParseExact(_testDate + " " + EndTime, "yyyy-M-d " + _endFormat,
                     CultureInfo.InvariantCulture, DateTimeStyles.None).ToUniversalTime();
@@ -886,7 +877,37 @@ namespace Seq.App.EventTimeout
                 _endTime = DateTime.ParseExact(EndTime, _endFormat, CultureInfo.InvariantCulture, DateTimeStyles.None)
                     .ToUniversalTime();
 
-            if (_endTime <= _startTime) _endTime = _endTime.AddDays(_endTime.AddDays(1) < _startTime ? 2 : 1);
+            if (_endTime == _startTime)
+            {
+                _endTime = _endTime.AddDays(1);
+                _is24H = true;
+            }
+
+            //If we updated holidays, don't automatically put start time to the future
+            if (!_is24H && _startTime < utcDate && !isUpdateHolidays) _startTime = _startTime.AddDays(1);
+
+
+            if (_endTime < _startTime)
+                _endTime.AddDays(1);
+           //if (_startTime == _endTime)
+             //  _endTime = _endTime.AddDays(1);
+
+            //if (_startTime < utcDate && _endTime < utcDate)
+            //{
+            //    _startTime = _startTime.AddDays(1);
+            //    _endTime = _endTime.AddDays(1);
+            //}
+            
+
+            //If there are holidays, account for them
+            foreach (var holiday in _holidays.Where(holiday =>
+                _startTime >= holiday.UtcStart && _startTime < holiday.UtcEnd))
+            {
+                _startTime = _startTime.AddDays(1);
+                break;
+            }
+
+            if (_endTime <= _startTime) _endTime = _endTime.AddDays(_endTime.AddDays(1) <= _startTime ? 2 : 1);
 
             LogEvent(LogEventLevel.Debug,
                 isUpdateHolidays
@@ -894,6 +915,11 @@ namespace Seq.App.EventTimeout
                     : "UTC Day Rollover, Parse {LocalStart} To Next UTC Start Time {StartTime} ({StartDayOfWeek}), Parse {LocalEnd} to UTC End Time {EndTime} ({EndDayOfWeek})...",
                 StartTime, _startTime.ToShortTimeString(), _startTime.DayOfWeek, EndTime,
                 _endTime.ToShortTimeString(), _endTime.DayOfWeek);
+        }
+
+        public Showtime GetShowtime()
+        {
+            return new Showtime(_startTime, _endTime);
         }
 
         /// <summary>
