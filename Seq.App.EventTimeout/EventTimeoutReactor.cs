@@ -409,11 +409,10 @@ namespace Seq.App.EventTimeout
                 LogEvent(LogEventLevel.Debug, "App name {AppName} will be included in alert message ...", App.Title);
 
             if (!DateTime.TryParseExact(StartTime, "H:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                // ReSharper disable once NotAccessedVariable
-                out var testStartTime))
+                out _))
             {
                 if (DateTime.TryParseExact(StartTime, "H:mm", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                    out testStartTime))
+                    out _))
                     _startFormat = "H:mm";
                 else
                     LogEvent(LogEventLevel.Debug,
@@ -421,11 +420,10 @@ namespace Seq.App.EventTimeout
             }
 
             if (!DateTime.TryParseExact(EndTime, "H:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                // ReSharper disable once NotAccessedVariable
-                out var testEndTime))
+                out _))
             {
                 if (DateTime.TryParseExact(EndTime, "H:mm", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                    out testEndTime))
+                    out _))
                     _endFormat = "H:mm";
                 else
                     LogEvent(LogEventLevel.Debug,
@@ -860,6 +858,8 @@ namespace Seq.App.EventTimeout
         /// <param name="isUpdateHolidays"></param>
         private void UtcRollover(DateTime utcDate, bool isUpdateHolidays = false)
         {
+            LogEvent(LogEventLevel.Debug, "UTC Time is currently {UtcTime} ...", DateTime.Now.ToUniversalTime().ToShortTimeString());
+            
             //Day rollover, we need to ensure the next start and end is in the future
             if (!string.IsNullOrEmpty(_testDate))
                 _startTime = DateTime.ParseExact(_testDate + " " + StartTime, "yyyy-M-d " + _startFormat,
@@ -888,7 +888,7 @@ namespace Seq.App.EventTimeout
                 _endTime = DateTime.ParseExact(EndTime, _endFormat, CultureInfo.InvariantCulture, DateTimeStyles.None)
                     .ToUniversalTime();
 
-            if (_endTime <= _startTime) _endTime = _endTime.AddDays(_endTime.AddDays(1) < _startTime ? 2 : 1);
+            if (_endTime <= _startTime) _endTime = _endTime.AddDays(_endTime.AddDays(1) <= _startTime ? 2 : 1);
 
             LogEvent(LogEventLevel.Debug,
                 isUpdateHolidays
