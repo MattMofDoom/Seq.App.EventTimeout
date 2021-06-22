@@ -29,7 +29,7 @@ namespace Seq.App.EventTimeout
         private int _errorCount;
         private List<int> _excludeDays;
         private List<string> _holidayMatch;
-        public List<AbstractApiHolidays> _holidays;
+        public List<AbstractApiHolidays> Holidays;
         private bool _includeApp;
         private bool _includeBank;
         private List<int> _includeDays;
@@ -50,7 +50,7 @@ namespace Seq.App.EventTimeout
         private List<string> _localeMatch;
 
         // Count of matches
-        private int _matched;
+        public int Matched;
         private string _priority;
         private Dictionary<string, string> _properties;
         private string _proxy;
@@ -62,6 +62,7 @@ namespace Seq.App.EventTimeout
         private bool _skippedShowtime;
         private string _startFormat = "H:mm:ss";
         private DateTime _startTime;
+        private TimeSpan _repeatTimeoutSuppress;
         private TimeSpan _suppressionTime;
         private string[] _tags;
         private string _testDate;
@@ -75,7 +76,7 @@ namespace Seq.App.EventTimeout
         // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
         [SeqAppSetting(
             DisplayName = "Diagnostic logging",
-            HelpText = "Send extra diagnostic logging to the stream. Enabled by default.")]
+            HelpText = "Send extra diagnostic logging to the stream. Recommended to enable.")]
         public bool Diagnostics { get; set; } = true;
 
         [SeqAppSetting(
@@ -91,12 +92,12 @@ namespace Seq.App.EventTimeout
         [SeqAppSetting(
             DisplayName = "Timeout interval (seconds)",
             HelpText =
-                "Time period in which a matching log entry must be seen. After this, an alert will be raised. Default 60.",
+                "Time period in which a matching log entry must be seen. After this, an alert will be raised. Default 60, Minimum 1.",
             InputType = SettingInputType.Integer)]
         public int Timeout { get; set; } = 60;
 
         [SeqAppSetting(
-            DisplayName = "Repeat timeout",
+            DisplayName = "Enable repeat timeout",
             HelpText =
                 "Optionally re-arm the timeout after a match, within the start/end time parameters - useful for a 'heartbeat' style alert. Disabled by default.",
             IsOptional = true)]
@@ -105,9 +106,17 @@ namespace Seq.App.EventTimeout
         [SeqAppSetting(
             DisplayName = "Suppression interval (seconds)",
             HelpText =
-                "If an alert has been raised, further alerts will be suppressed for this time. Will also suppress repeating timeout matches. Default 60.",
+                "If an alert has been raised, further alerts will be suppressed for this time. Default 60, Minimum 0.",
             InputType = SettingInputType.Integer)]
         public int SuppressionTime { get; set; } = 60;
+
+        [SeqAppSetting(
+            DisplayName = "Repeat timeout suppression (seconds)",
+            HelpText =
+                "If Repeat timeout is enabled, suppress further 'matched' entries for this time. Default 60, Minimum 0.",
+            InputType = SettingInputType.Integer,
+            IsOptional = true)]
+        public int RepeatTimeoutSuppress { get; set; } = 60;
 
         [SeqAppSetting(DisplayName = "Log level for timeouts",
             HelpText = "Verbose, Debug, Information, Warning, Error, Fatal. Defaults to Error.",
@@ -320,7 +329,7 @@ namespace Seq.App.EventTimeout
             var properties = 0;
             var matches = 0;
 
-            if (_matched != 0 && !_repeatTimeout || !IsShowtime) return;
+            if (Matched != 0 && !_repeatTimeout || !IsShowtime) return;
             foreach (var property in _properties)
             {
                 properties++;
@@ -361,7 +370,7 @@ namespace Seq.App.EventTimeout
                 //If all configured properties were present and had matches, log an event
                 case false when properties == matches:
                 {
-                    _matched++;
+                    Matched++;
                     var lastMatch = _lastMatched;
 
                     var difference = timeNow - _lastMatchLog;
@@ -376,15 +385,15 @@ namespace Seq.App.EventTimeout
                     }
                     else
                     {
-                        if (lastMatch == 0 || difference.TotalSeconds > _suppressionTime.TotalSeconds)
+                        if (lastMatch == 0 || difference.TotalSeconds > _repeatTimeoutSuppress.TotalSeconds)
                         {
                             _lastMatchLog = timeNow;
                             //Only log one event regardless of how many match the first event                        
-                            if (lastMatch == 0 && _matched == 1 || _lastMatched > 0)
+                            if (lastMatch == 0 && Matched == 1 || _lastMatched > 0)
                                 LogEvent(LogEventLevel.Debug,
                                     "Successfully matched {TextMatch}! Total matches {Total} - resetting timeout to {Timeout} seconds, further matches will not be logged for {Suppression} seconds ...",
                                     PropertyMatch.MatchConditions(_properties),
-                                    _matched, _timeOut.TotalSeconds, _suppressionTime.TotalSeconds);
+                                    Matched, _timeOut.TotalSeconds, _repeatTimeoutSuppress.TotalSeconds);
                         }
                     }
 
@@ -439,6 +448,9 @@ namespace Seq.App.EventTimeout
 
             if (!_useHolidays || _isUpdating) UtcRollover(DateTime.UtcNow);
 
+            //Enforce minimum timeout interval
+            if (Timeout <= 0)
+                Timeout = 1;
             if (_diagnostics) LogEvent(LogEventLevel.Debug, "Convert Timeout {timeout} to TimeSpan ...", Timeout);
 
             _timeOut = TimeSpan.FromSeconds(Timeout);
@@ -448,15 +460,28 @@ namespace Seq.App.EventTimeout
 
             _repeatTimeout = RepeatTimeout;
 
+            //Negative values not permitted
+            if (SuppressionTime < 0)
+                SuppressionTime = 0;
             if (_diagnostics)
                 LogEvent(LogEventLevel.Debug, "Convert Suppression {suppression} to TimeSpan ...", SuppressionTime);
 
             _suppressionTime = TimeSpan.FromSeconds(SuppressionTime);
             if (_diagnostics)
                 LogEvent(LogEventLevel.Debug, "Parsed Suppression is {timeout} ...", _suppressionTime.TotalSeconds);
+            
+            //Negative values not permitted
+            if (RepeatTimeoutSuppress < 0)
+                RepeatTimeoutSuppress = 0;
+            if (_diagnostics)
+                LogEvent(LogEventLevel.Debug, "Convert Repeat Timeout Suppression {suppression} to TimeSpan ...", RepeatTimeoutSuppress);
+            _repeatTimeoutSuppress = TimeSpan.FromSeconds(RepeatTimeoutSuppress);
+            if (_diagnostics)
+                LogEvent(LogEventLevel.Debug, "Parsed Repeat Timeout Suppression is {timeout} ...", _repeatTimeoutSuppress.TotalSeconds);
 
             if (_diagnostics)
                 LogEvent(LogEventLevel.Debug, "Convert Days of Week {daysofweek} to UTC Days of Week ...", DaysOfWeek);
+
 
             _daysOfWeek = Dates.GetDaysOfWeek(DaysOfWeek, StartTime, _startFormat);
 
@@ -585,7 +610,7 @@ namespace Seq.App.EventTimeout
                     var difference = timeNow - _lastCheck;
                     //Check the timeout versus any successful matches. If repeating timeouts are enabled, we'll compare matched with lastMatched to detect if there's been any matches
                     if (difference.TotalSeconds > _timeOut.TotalSeconds &&
-                        (_matched == 0 || _repeatTimeout && _matched == _lastMatched))
+                        (Matched == 0 || _repeatTimeout && Matched == _lastMatched))
                     {
                         var suppressDiff = timeNow - _lastLog;
                         if (IsAlert && suppressDiff.TotalSeconds < _suppressionTime.TotalSeconds) return;
@@ -600,7 +625,7 @@ namespace Seq.App.EventTimeout
                     }
 
                     //Grab a snapshot of the match count for next evaluation
-                    _lastMatched = _matched;
+                    _lastMatched = Matched;
                 }
             }
             else if (timeNow < _startTime || timeNow >= _endTime)
@@ -610,13 +635,13 @@ namespace Seq.App.EventTimeout
                     LogEvent(LogEventLevel.Debug,
                         "UTC End Time {Time} ({DayOfWeek}), no longer monitoring for {MatchText}, total matches {Matches} ...",
                         _endTime.ToShortTimeString(), _endTime.DayOfWeek, PropertyMatch.MatchConditions(_properties),
-                        _matched);
+                        Matched);
 
                 //Reset the match counters
                 _lastLog = timeNow;
                 _lastCheck = timeNow;
                 _lastMatchLog = timeNow;
-                _matched = 0;
+                Matched = 0;
                 _lastMatched = 0;
                 IsAlert = false;
                 IsShowtime = false;
@@ -708,7 +733,7 @@ namespace Seq.App.EventTimeout
                 {
                     if (_diagnostics) LogEvent(LogEventLevel.Debug, "Validate Country {Country}", Country);
 
-                    if (Holidays.ValidateCountry(Country))
+                    if (Classes.Holidays.ValidateCountry(Country))
                     {
                         _useHolidays = true;
                         _retryCount = 10;
@@ -774,7 +799,7 @@ namespace Seq.App.EventTimeout
             _lastUpdate = DateTime.Now.AddDays(-1);
             _errorCount = 0;
             _testDate = TestDate;
-            _holidays = new List<AbstractApiHolidays>();
+            Holidays = new List<AbstractApiHolidays>();
         }
 
         /// <summary>
@@ -805,7 +830,7 @@ namespace Seq.App.EventTimeout
                 {
                     _lastUpdate = DateTime.Now;
                     var result = WebClient.GetHolidays(_apiKey, _country, localDate).Result;
-                    _holidays = Holidays.ValidateHolidays(result, _holidayMatch, _localeMatch, _includeBank,
+                    Holidays = Classes.Holidays.ValidateHolidays(result, _holidayMatch, _localeMatch, _includeBank,
                         _includeWeekends);
                     _lastDay = localDate;
                     _errorCount = 0;
@@ -823,8 +848,8 @@ namespace Seq.App.EventTimeout
                     }
 
                     LogEvent(LogEventLevel.Debug, "Holidays retrieved and validated {holidayCount} ...",
-                        _holidays.Count);
-                    foreach (var holiday in _holidays)
+                        Holidays.Count);
+                    foreach (var holiday in Holidays)
                         LogEvent(LogEventLevel.Debug,
                             "Holiday Name: {Name}, Local Name {LocalName}, Start {LocalStart}, Start UTC {Start}, End UTC {End}, Type {Type}, Location string {Location}, Locations parsed {Locations} ...",
                             holiday.Name, holiday.Name_Local, holiday.LocalStart, holiday.UtcStart, holiday.UtcEnd,
@@ -847,7 +872,7 @@ namespace Seq.App.EventTimeout
                 _isUpdating = false;
                 _lastDay = localDate;
                 _errorCount = 0;
-                _holidays = new List<AbstractApiHolidays>();
+                Holidays = new List<AbstractApiHolidays>();
                 if (_useHolidays && !IsShowtime) UtcRollover(utcDate, true);
             }
         }
@@ -877,37 +902,26 @@ namespace Seq.App.EventTimeout
                 _endTime = DateTime.ParseExact(EndTime, _endFormat, CultureInfo.InvariantCulture, DateTimeStyles.None)
                     .ToUniversalTime();
 
+            //Detect a 24  hour instance and handle it
             if (_endTime == _startTime)
             {
                 _endTime = _endTime.AddDays(1);
                 _is24H = true;
             }
 
-            //If we updated holidays, don't automatically put start time to the future
-            if (!_is24H && _startTime < utcDate && !isUpdateHolidays) _startTime = _startTime.AddDays(1);
-
-
-            if (_endTime < _startTime)
-                _endTime.AddDays(1);
-           //if (_startTime == _endTime)
-             //  _endTime = _endTime.AddDays(1);
-
-            //if (_startTime < utcDate && _endTime < utcDate)
-            //{
-            //    _startTime = _startTime.AddDays(1);
-            //    _endTime = _endTime.AddDays(1);
-            //}
-            
-
             //If there are holidays, account for them
-            foreach (var holiday in _holidays.Where(holiday =>
+            foreach (var unused in Holidays.Where(holiday =>
                 _startTime >= holiday.UtcStart && _startTime < holiday.UtcEnd))
             {
                 _startTime = _startTime.AddDays(1);
                 break;
             }
 
-            if (_endTime <= _startTime) _endTime = _endTime.AddDays(_endTime.AddDays(1) <= _startTime ? 2 : 1);
+            //If we updated holidays or this is a 24h instance, don't automatically put start time to the future
+            if (!_is24H && _startTime < utcDate && !isUpdateHolidays) _startTime = _startTime.AddDays(1);
+
+            if (_endTime < _startTime)
+                _endTime = _endTime.AddDays(1);
 
             LogEvent(LogEventLevel.Debug,
                 isUpdateHolidays
