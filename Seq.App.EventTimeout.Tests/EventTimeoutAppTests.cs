@@ -16,34 +16,37 @@ namespace Seq.App.EventTimeout.Tests
         {
             _testOutputHelper = testOutputHelper;
         }
-
-        private EventTimeoutReactor getReactor(string start, string end, int timeout, int suppression)
+        
+        [Fact]
+        public void AppRepeatsTimeouts()
         {
-            return new EventTimeoutReactor
-            {
-                Diagnostics = true,
-                StartTime = start,
-                EndTime = end,
-                Timeout = timeout,
-                RepeatTimeout = false,
-                SuppressionTime = suppression,
-                TimeoutLogLevel = "Error",
-                Priority = "P1",
-                Responders = "Everyone Ever",
-                Property1Name = "@Message",
-                TextMatch = "Event That Is Not Matchable",
-                AlertMessage = "An alert!",
-                AlertDescription = "An alert has arisen!",
-                Tags = "Alert,Message",
-                IncludeApp = true
-
-            };
+            var app = Some.Reactor(DateTime.Today.ToString("H:mm:ss"),
+                DateTime.Today.ToString("H:mm:ss"), 1, 1, "Hello", true, 1);
+            app.Attach(TestAppHost.Instance);
+            //Wait for showtime
+            Thread.Sleep(2000);
+            Assert.True(app.IsShowtime);
+            Assert.False(app.IsAlert);
+            //Wait for a timeout
+            Thread.Sleep(2000);
+            Assert.True(app.IsAlert);
+            Assert.True(app.Matched == 0);
+            //Log an event and validate that we are still in showtime and matching events
+            var evt = Some.LogEvent();
+            app.On(evt);
+            Assert.True(app.IsShowtime);
+            var matches = app.Matched;
+            Assert.True(app.Matched > 0);
+            //Still in showtime and still matching events
+            Thread.Sleep(2000);
+            app.On(evt);
+            Assert.True(app.Matched > matches);
         }
 
         [Fact]
         public void AppTriggersTimeouts()
         {
-            var app = getReactor(DateTime.Now.AddSeconds(1).ToString("H:mm:ss"),
+            var app = Some.Reactor(DateTime.Now.AddSeconds(1).ToString("H:mm:ss"),
                 DateTime.Now.AddMinutes(1).ToString("H:mm:ss"), 1, 59);
 
             app.Attach(TestAppHost.Instance);
@@ -58,7 +61,7 @@ namespace Seq.App.EventTimeout.Tests
         [Fact]
         public void AppAllows24H()
         {
-            var app = getReactor(DateTime.Today.ToString("H:mm:ss"), DateTime.Today.ToString("H:mm:ss"), 1, 59);
+            var app = Some.Reactor(DateTime.Today.ToString("H:mm:ss"), DateTime.Today.ToString("H:mm:ss"), 1, 59);
             app.Attach(TestAppHost.Instance);
             var showTime = app.GetShowtime();
             _testOutputHelper.WriteLine("Current UTC: " + DateTime.Now.ToUniversalTime().ToString("F"));
@@ -76,7 +79,7 @@ namespace Seq.App.EventTimeout.Tests
             var start = DateTime.Now.AddHours(-1);
             var end = DateTime.Now.AddHours(1);
 
-            var app = getReactor(start.ToString("H:mm:ss"), end.ToString("H:mm:ss"), 1, 59);
+            var app = Some.Reactor(start.ToString("H:mm:ss"), end.ToString("H:mm:ss"), 1, 59);
             app.Attach(TestAppHost.Instance);
             var showTime = app.GetShowtime();
             _testOutputHelper.WriteLine("Current UTC: " + DateTime.Now.ToUniversalTime().ToString("F"));
@@ -92,7 +95,7 @@ namespace Seq.App.EventTimeout.Tests
             var start = DateTime.Now.AddHours(1);
             var end = DateTime.Now.AddHours(2);
 
-            var app = getReactor(start.ToString("H:mm:ss"), end.ToString("H:mm:ss"), 1, 59);
+            var app = Some.Reactor(start.ToString("H:mm:ss"), end.ToString("H:mm:ss"), 1, 59);
             app.Attach(TestAppHost.Instance);
             var showTime = app.GetShowtime();
             _testOutputHelper.WriteLine("Current UTC: " + DateTime.Now.ToUniversalTime().ToString("F"));
@@ -108,7 +111,7 @@ namespace Seq.App.EventTimeout.Tests
             var start = DateTime.Now.AddHours(-2);
             var end = DateTime.Now.AddHours(-1);
 
-            var app = getReactor(start.ToString("H:mm:ss"), end.ToString("H:mm:ss"), 1, 59);
+            var app = Some.Reactor(start.ToString("H:mm:ss"), end.ToString("H:mm:ss"), 1, 59);
             app.Attach(TestAppHost.Instance);
             var showTime = app.GetShowtime();
             _testOutputHelper.WriteLine("Current UTC: " + DateTime.Now.ToUniversalTime().ToString("F"));
@@ -127,9 +130,9 @@ namespace Seq.App.EventTimeout.Tests
                 "Local holiday", DateTime.Today.ToString("MM/dd/yyyy"), DateTime.Today.Year.ToString(),
                 DateTime.Today.Month.ToString(), DateTime.Today.Day.ToString(), DateTime.Today.DayOfWeek.ToString());
 
-            var app = getReactor(start.ToString("H:mm:ss"), end.ToString("H:mm:ss"), 1, 59);
+            var app = Some.Reactor(start.ToString("H:mm:ss"), end.ToString("H:mm:ss"), 1, 59);
             app.Attach(TestAppHost.Instance);
-            app._holidays = new List<AbstractApiHolidays> {holiday};
+            app.Holidays = new List<AbstractApiHolidays> {holiday};
             app.UtcRollover(DateTime.Now.ToUniversalTime(), true);
             var showTime = app.GetShowtime();
             _testOutputHelper.WriteLine("Current UTC: " + DateTime.Now.ToUniversalTime().ToString("F"));
@@ -144,7 +147,7 @@ namespace Seq.App.EventTimeout.Tests
         {
             var start = DateTime.Now.AddHours(-1);
             var end = DateTime.Now.AddSeconds(-1);
-            var app = getReactor(start.ToString("H:mm:ss"), end.ToString("H:mm:ss"), 1, 59);
+            var app = Some.Reactor(start.ToString("H:mm:ss"), end.ToString("H:mm:ss"), 1, 59);
 
             app.Attach(TestAppHost.Instance);
             app.UtcRollover(DateTime.Now.ToUniversalTime());

@@ -81,5 +81,29 @@ namespace Seq.App.EventTimeout.Tests.Support
         {
             return new Host("https://seq.example.com", String() );
         }
+
+        public static EventTimeoutReactor Reactor(string start, string end, int timeout, int suppression, string textMatch = "Event That Is Not Matchable", bool repeatTimeout = false, int timeoutSuppression = 60)
+        {
+            return new EventTimeoutReactor
+            {
+                Diagnostics = true,
+                StartTime = start,
+                EndTime = end,
+                Timeout = timeout,
+                RepeatTimeout = repeatTimeout,
+                SuppressionTime = suppression,
+                RepeatTimeoutSuppress = timeoutSuppression,
+                TimeoutLogLevel = "Error",
+                Priority = "P1",
+                Responders = "Everyone Ever",
+                Property1Name = "@Message",
+                TextMatch = textMatch,
+                AlertMessage = "An alert!",
+                AlertDescription = "An alert has arisen!",
+                Tags = "Alert,Message",
+                IncludeApp = true
+
+            };
+        }
     }
 }
