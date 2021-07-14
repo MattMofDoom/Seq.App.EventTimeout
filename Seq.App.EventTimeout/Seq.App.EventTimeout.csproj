@@ -24,8 +24,9 @@
 - Add unit tests
 - Disable reprocessing events
 - Handle same start and end time as 24h block as expected
-- Add repeat timeout suppression config to differentiate from suppression interval</PackageReleaseNotes>
-    <Version>1.4.5</Version>
+- Add repeat timeout suppression config to differentiate from suppression interval
+- Better handling of holiday threshold cases</PackageReleaseNotes>
+    <Version>1.4.6</Version>
     <!--    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>-->
   </PropertyGroup>
 
