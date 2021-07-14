@@ -451,10 +451,10 @@ namespace Seq.App.EventTimeout
             //Enforce minimum timeout interval
             if (Timeout <= 0)
                 Timeout = 1;
-            if (_diagnostics) LogEvent(LogEventLevel.Debug, "Convert Timeout {timeout} to TimeSpan ...", Timeout);
+            if (_diagnostics) LogEvent(LogEventLevel.Debug, "Convert Timeout {Timeout} to TimeSpan ...", Timeout);
 
             _timeOut = TimeSpan.FromSeconds(Timeout);
-            if (_diagnostics) LogEvent(LogEventLevel.Debug, "Parsed Timeout is {timeout} ...", _timeOut.TotalSeconds);
+            if (_diagnostics) LogEvent(LogEventLevel.Debug, "Parsed Timeout is {Timeout} ...", _timeOut.TotalSeconds);
 
             if (_diagnostics) LogEvent(LogEventLevel.Debug, "Repeat Timeout: {RepeatTimeout} ...", RepeatTimeout);
 
@@ -464,45 +464,45 @@ namespace Seq.App.EventTimeout
             if (SuppressionTime < 0)
                 SuppressionTime = 0;
             if (_diagnostics)
-                LogEvent(LogEventLevel.Debug, "Convert Suppression {suppression} to TimeSpan ...", SuppressionTime);
+                LogEvent(LogEventLevel.Debug, "Convert Suppression {Suppression} to TimeSpan ...", SuppressionTime);
 
             _suppressionTime = TimeSpan.FromSeconds(SuppressionTime);
             if (_diagnostics)
-                LogEvent(LogEventLevel.Debug, "Parsed Suppression is {timeout} ...", _suppressionTime.TotalSeconds);
+                LogEvent(LogEventLevel.Debug, "Parsed Suppression is {Suppression} ...", _suppressionTime.TotalSeconds);
             
             //Negative values not permitted
             if (RepeatTimeoutSuppress < 0)
                 RepeatTimeoutSuppress = 0;
             if (_diagnostics)
-                LogEvent(LogEventLevel.Debug, "Convert Repeat Timeout Suppression {suppression} to TimeSpan ...", RepeatTimeoutSuppress);
+                LogEvent(LogEventLevel.Debug, "Convert Repeat Timeout Suppression {RepeatTimeoutSuppress} to TimeSpan ...", RepeatTimeoutSuppress);
             _repeatTimeoutSuppress = TimeSpan.FromSeconds(RepeatTimeoutSuppress);
             if (_diagnostics)
-                LogEvent(LogEventLevel.Debug, "Parsed Repeat Timeout Suppression is {timeout} ...", _repeatTimeoutSuppress.TotalSeconds);
+                LogEvent(LogEventLevel.Debug, "Parsed Repeat Timeout Suppression is {RepeatTimeoutSuppress} ...", _repeatTimeoutSuppress.TotalSeconds);
 
             if (_diagnostics)
-                LogEvent(LogEventLevel.Debug, "Convert Days of Week {daysofweek} to UTC Days of Week ...", DaysOfWeek);
+                LogEvent(LogEventLevel.Debug, "Convert Days of Week {DaysOfWeek} to UTC Days of Week ...", DaysOfWeek);
 
 
             _daysOfWeek = Dates.GetDaysOfWeek(DaysOfWeek, StartTime, _startFormat);
 
             if (_diagnostics)
-                LogEvent(LogEventLevel.Debug, "UTC Days of Week {daysofweek} will be used ...", _daysOfWeek.ToArray());
+                LogEvent(LogEventLevel.Debug, "UTC Days of Week {DaysOfWeek} will be used ...", _daysOfWeek.ToArray());
 
             if (_diagnostics)
-                LogEvent(LogEventLevel.Debug, "Validate Include Days of Month {includedays} ...", IncludeDaysOfMonth);
+                LogEvent(LogEventLevel.Debug, "Validate Include Days of Month {IncludeDays} ...", IncludeDaysOfMonth);
 
             _includeDays = Dates.GetDaysOfMonth(IncludeDaysOfMonth, StartTime, _startFormat);
             if (_includeDays.Count > 0)
-                LogEvent(LogEventLevel.Debug, "Include UTC Days of Month: {includedays} ...", _includeDays.ToArray());
+                LogEvent(LogEventLevel.Debug, "Include UTC Days of Month: {IncludeDays} ...", _includeDays.ToArray());
             else
                 LogEvent(LogEventLevel.Debug, "Include UTC Days of Month: ALL ...");
 
             if (_diagnostics)
-                LogEvent(LogEventLevel.Debug, "Validate Exclude Days of Month {excludedays} ...", ExcludeDaysOfMonth);
+                LogEvent(LogEventLevel.Debug, "Validate Exclude Days of Month {ExcludeDays} ...", ExcludeDaysOfMonth);
 
             _excludeDays = Dates.GetDaysOfMonth(ExcludeDaysOfMonth, StartTime, _startFormat);
             if (_excludeDays.Count > 0)
-                LogEvent(LogEventLevel.Debug, "Exclude UTC Days of Month: {excludedays} ...", _excludeDays.ToArray());
+                LogEvent(LogEventLevel.Debug, "Exclude UTC Days of Month: {ExcludeDays} ...", _excludeDays.ToArray());
             else
                 LogEvent(LogEventLevel.Debug, "Exclude UTC Days of Month: NONE ...");
 
@@ -656,12 +656,12 @@ namespace Seq.App.EventTimeout
             //Take the opportunity to refresh include/exclude days to allow for month rollover
             _includeDays = Dates.GetDaysOfMonth(IncludeDaysOfMonth, StartTime, _startFormat);
             if (_includeDays.Count > 0)
-                LogEvent(LogEventLevel.Debug, "Include UTC Days of Month: {includedays} ...",
+                LogEvent(LogEventLevel.Debug, "Include UTC Days of Month: {IncludeDays} ...",
                     _includeDays.ToArray());
 
             _excludeDays = Dates.GetDaysOfMonth(ExcludeDaysOfMonth, StartTime, _startFormat);
             if (_excludeDays.Count > 0)
-                LogEvent(LogEventLevel.Debug, "Exclude UTC Days of Month: {excludedays} ...",
+                LogEvent(LogEventLevel.Debug, "Exclude UTC Days of Month: {ExcludeDays} ...",
                     _excludeDays.ToArray());
         }
 
@@ -819,7 +819,7 @@ namespace Seq.App.EventTimeout
 
                 if (_diagnostics)
                     LogEvent(LogEventLevel.Debug,
-                        "Retrieve holidays for {Date}, Last Update {lastUpdateDate} {lastUpdateTime} ...",
+                        "Retrieve holidays for {Date}, Last Update {LastUpdateDate} {LastUpdateTime} ...",
                         localDate.ToShortDateString(), _lastUpdate.ToShortDateString(),
                         _lastUpdate.ToShortTimeString());
 
@@ -847,7 +847,7 @@ namespace Seq.App.EventTimeout
                                 holiday.Type, holiday.Location, holiday.Locations.ToArray());
                     }
 
-                    LogEvent(LogEventLevel.Debug, "Holidays retrieved and validated {holidayCount} ...",
+                    LogEvent(LogEventLevel.Debug, "Holidays retrieved and validated {HolidayCount} ...",
                         Holidays.Count);
                     foreach (var holiday in Holidays)
                         LogEvent(LogEventLevel.Debug,
@@ -914,6 +914,8 @@ namespace Seq.App.EventTimeout
                 _startTime >= holiday.UtcStart && _startTime < holiday.UtcEnd))
             {
                 _startTime = _startTime.AddDays(1);
+                if (_endTime < _startTime)
+                    _endTime = _endTime.AddDays(1);
                 break;
             }
 
