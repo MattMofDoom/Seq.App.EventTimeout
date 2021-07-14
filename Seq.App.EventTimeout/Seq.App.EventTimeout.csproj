@@ -13,7 +13,7 @@
     <PackageIconUrl></PackageIconUrl>
     <RepositoryUrl>https://github.com/MattMofDoom/Seq.App.EventTimeout</RepositoryUrl>
     <RepositoryType>Github</RepositoryType>
-    <PackageTags>seq-app</PackageTags>
+    <PackageTags>seq-app seq event timeout alert monitoring holidays</PackageTags>
     <PackageIcon>alert.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReleaseNotes>- Set defaults for boolean properties, timeout, and suppression values
