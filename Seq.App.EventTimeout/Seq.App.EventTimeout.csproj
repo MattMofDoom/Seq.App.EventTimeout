@@ -25,8 +25,9 @@
 - Disable reprocessing events
 - Handle same start and end time as 24h block as expected
 - Add repeat timeout suppression config to differentiate from suppression interval
-- Better handling of holiday threshold cases</PackageReleaseNotes>
-    <Version>1.4.7</Version>
+- Better handling of holiday threshold cases
+- Handle null properties when matching events</PackageReleaseNotes>
+    <Version>1.4.8</Version>
     <!--    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>-->
   </PropertyGroup>
 
