@@ -47,22 +47,13 @@ namespace Seq.App.EventTimeout.Tests
         public void AppTriggersTimeouts()
         {
             var app = Some.Reactor(DateTime.Now.AddSeconds(1).ToString("H:mm:ss"),
-                DateTime.Now.AddMinutes(1).ToString("H:mm:ss"), 1, 59);
+                DateTime.Now.AddMinutes(1).ToString("H:mm:ss"), 1, 1);
 
             app.Attach(TestAppHost.Instance);
             Thread.Sleep(2000);
             Assert.True(app.IsShowtime);
             var evt = Some.LogEvent();
             app.On(evt);
-            var isAlert = true;
-            for (var i = 1; i < 1001; i++)
-            {
-                Thread.Sleep(1);
-                if (app.IsAlert) continue;
-                isAlert = false;
-                break;
-            }
-            Assert.False(isAlert);
             Thread.Sleep(2000);
             Assert.True(app.IsAlert);
         }

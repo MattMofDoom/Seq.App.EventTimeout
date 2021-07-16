@@ -631,7 +631,8 @@ namespace Seq.App.EventTimeout
                     }
                     else
                     {
-                        IsAlert = false;
+                        if (_repeatTimeout)
+                            IsAlert = false;
                     }
 
                     //Grab a snapshot of the match count for next evaluation
