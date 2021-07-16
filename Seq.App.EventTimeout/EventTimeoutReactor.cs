@@ -629,6 +629,10 @@ namespace Seq.App.EventTimeout
                         _lastLog = timeNow;
                         IsAlert = true;
                     }
+                    else
+                    {
+                        IsAlert = false;
+                    }
 
                     //Grab a snapshot of the match count for next evaluation
                     _lastMatched = Matched;

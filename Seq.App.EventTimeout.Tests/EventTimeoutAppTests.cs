@@ -31,17 +31,16 @@ namespace Seq.App.EventTimeout.Tests
             //Wait for a timeout
             Thread.Sleep(2000);
             Assert.True(app.IsAlert);
-            Assert.True(app.Matched == 0);
             //Log an event and validate that we are still in showtime and matching events
             var evt = Some.LogEvent();
             app.On(evt);
             Assert.True(app.IsShowtime);
             var matches = app.Matched;
-            Assert.True(app.Matched > 0);
+            Thread.Sleep(1000);
+            Assert.False(app.IsAlert);
             //Still in showtime and still matching events
             Thread.Sleep(2000);
-            app.On(evt);
-            Assert.True(app.Matched > matches);
+            Assert.True(app.IsAlert);
         }
 
         [Fact]
@@ -55,6 +54,15 @@ namespace Seq.App.EventTimeout.Tests
             Assert.True(app.IsShowtime);
             var evt = Some.LogEvent();
             app.On(evt);
+            var isAlert = true;
+            for (var i = 1; i < 1001; i++)
+            {
+                Thread.Sleep(1);
+                if (app.IsAlert) continue;
+                isAlert = false;
+                break;
+            }
+            Assert.False(isAlert);
             Thread.Sleep(2000);
             Assert.True(app.IsAlert);
         }
