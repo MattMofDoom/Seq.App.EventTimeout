@@ -9,13 +9,12 @@ using Seq.Apps.LogEvents;
 
 namespace Seq.App.EventTimeout
 {
-    [SeqApp("Event Timeout", AllowReprocessing = false, 
+    [SeqApp("Event Timeout", AllowReprocessing = false,
         Description =
             "Super-powered monitoring of Seq events with start/end times, timeout and suppression intervals, matching multiple properties, day of week and day of month inclusion/exclusion, and optional holiday API!")]
     // ReSharper disable once UnusedType.Global
     public class EventTimeoutReactor : SeqApp, ISubscribeTo<LogEventData>
     {
-        private bool _is24H;
         private string _alertDescription;
         private string _alertMessage;
         private string _apiKey;
@@ -29,13 +28,12 @@ namespace Seq.App.EventTimeout
         private int _errorCount;
         private List<int> _excludeDays;
         private List<string> _holidayMatch;
-        public List<AbstractApiHolidays> Holidays;
         private bool _includeApp;
         private bool _includeBank;
         private List<int> _includeDays;
         private bool _includeWeekends;
-        public bool IsAlert;
-        public bool IsShowtime;
+
+        private bool _is24H;
         private bool _isTags;
         private bool _isUpdating;
         private DateTime _lastCheck;
@@ -48,21 +46,18 @@ namespace Seq.App.EventTimeout
         private string[] _localAddresses;
 
         private List<string> _localeMatch;
-
-        // Count of matches
-        public int Matched;
         private string _priority;
         private Dictionary<string, string> _properties;
         private string _proxy;
         private string _proxyPass;
         private string _proxyUser;
         private bool _repeatTimeout;
+        private TimeSpan _repeatTimeoutSuppress;
         private string _responders;
         private int _retryCount;
         private bool _skippedShowtime;
         private string _startFormat = "H:mm:ss";
         private DateTime _startTime;
-        private TimeSpan _repeatTimeoutSuppress;
         private TimeSpan _suppressionTime;
         private string[] _tags;
         private string _testDate;
@@ -71,6 +66,14 @@ namespace Seq.App.EventTimeout
         private Timer _timer;
         private bool _useHolidays;
         private bool _useProxy; // ReSharper disable MemberCanBePrivate.Global
+        public List<AbstractApiHolidays> Holidays;
+        public bool IsAlert;
+        public bool IsShowtime;
+
+        // Count of matches
+        public int Matched;
+        public DateTime TestOverrideTime = DateTime.Now;
+        public bool UseTestOverrideTime;
 
         // ReSharper disable UnusedAutoPropertyAccessor.Global
         // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
@@ -315,8 +318,8 @@ namespace Seq.App.EventTimeout
             HelpText = "Username for proxy authentication.",
             IsOptional = true,
             InputType = SettingInputType.Password)]
-        
-        
+
+
         public string ProxyPass { get; set; }
 
         public void On(Event<LogEventData> evt)
@@ -469,15 +472,18 @@ namespace Seq.App.EventTimeout
             _suppressionTime = TimeSpan.FromSeconds(SuppressionTime);
             if (_diagnostics)
                 LogEvent(LogEventLevel.Debug, "Parsed Suppression is {Suppression} ...", _suppressionTime.TotalSeconds);
-            
+
             //Negative values not permitted
             if (RepeatTimeoutSuppress < 0)
                 RepeatTimeoutSuppress = 0;
             if (_diagnostics)
-                LogEvent(LogEventLevel.Debug, "Convert Repeat Timeout Suppression {RepeatTimeoutSuppress} to TimeSpan ...", RepeatTimeoutSuppress);
+                LogEvent(LogEventLevel.Debug,
+                    "Convert Repeat Timeout Suppression {RepeatTimeoutSuppress} to TimeSpan ...",
+                    RepeatTimeoutSuppress);
             _repeatTimeoutSuppress = TimeSpan.FromSeconds(RepeatTimeoutSuppress);
             if (_diagnostics)
-                LogEvent(LogEventLevel.Debug, "Parsed Repeat Timeout Suppression is {RepeatTimeoutSuppress} ...", _repeatTimeoutSuppress.TotalSeconds);
+                LogEvent(LogEventLevel.Debug, "Parsed Repeat Timeout Suppression is {RepeatTimeoutSuppress} ...",
+                    _repeatTimeoutSuppress.TotalSeconds);
 
             if (_diagnostics)
                 LogEvent(LogEventLevel.Debug, "Convert Days of Week {DaysOfWeek} to UTC Days of Week ...", DaysOfWeek);
@@ -579,8 +585,8 @@ namespace Seq.App.EventTimeout
                 timeNow < _endTime)
             {
                 if (!IsShowtime && (!_daysOfWeek.Contains(_startTime.DayOfWeek) ||
-                                     _includeDays.Count > 0 && !_includeDays.Contains(_startTime.Day) ||
-                                     _excludeDays.Contains(_startTime.Day)))
+                                    _includeDays.Count > 0 && !_includeDays.Contains(_startTime.Day) ||
+                                    _excludeDays.Contains(_startTime.Day)))
                 {
                     //Log that we have skipped a day due to an exclusion
                     if (!_skippedShowtime)
@@ -619,7 +625,7 @@ namespace Seq.App.EventTimeout
                         LogEvent(_timeoutLogLevel,
                             string.IsNullOrEmpty(_alertDescription) ? "{Message}" : "{Message} : {Description}",
                             _alertMessage, _alertDescription);
-                        
+
                         _lastLog = timeNow;
                         IsAlert = true;
                     }
@@ -884,12 +890,20 @@ namespace Seq.App.EventTimeout
         /// <param name="isUpdateHolidays"></param>
         public void UtcRollover(DateTime utcDate, bool isUpdateHolidays = false)
         {
-            LogEvent(LogEventLevel.Debug, "UTC Time is currently {UtcTime} ...", DateTime.Now.ToUniversalTime().ToShortTimeString());
-            
+            LogEvent(LogEventLevel.Debug, "UTC Time is currently {UtcTime} ...",
+                UseTestOverrideTime
+                    ? TestOverrideTime.ToUniversalTime().ToShortTimeString()
+                    : DateTime.Now.ToUniversalTime().ToShortTimeString());
+
             //Day rollover, we need to ensure the next start and end is in the future
             if (!string.IsNullOrEmpty(_testDate))
                 _startTime = DateTime.ParseExact(_testDate + " " + StartTime, "yyyy-M-d " + _startFormat,
                     CultureInfo.InvariantCulture, DateTimeStyles.None).ToUniversalTime();
+            else if (UseTestOverrideTime)
+                _startTime = DateTime
+                    .ParseExact(TestOverrideTime.ToString("yyyy-M-d") + " " + StartTime, "yyyy-M-d " + _startFormat,
+                        CultureInfo.InvariantCulture, DateTimeStyles.None)
+                    .ToUniversalTime();
             else
                 _startTime = DateTime
                     .ParseExact(StartTime, _startFormat, CultureInfo.InvariantCulture, DateTimeStyles.None)
@@ -897,6 +911,10 @@ namespace Seq.App.EventTimeout
 
             if (!string.IsNullOrEmpty(_testDate))
                 _endTime = DateTime.ParseExact(_testDate + " " + EndTime, "yyyy-M-d " + _endFormat,
+                    CultureInfo.InvariantCulture, DateTimeStyles.None).ToUniversalTime();
+            else if (UseTestOverrideTime)
+                _endTime = DateTime.ParseExact(TestOverrideTime.ToString("yyyy-M-d") + " " + EndTime,
+                    "yyyy-M-d " + _endFormat,
                     CultureInfo.InvariantCulture, DateTimeStyles.None).ToUniversalTime();
             else
                 _endTime = DateTime.ParseExact(EndTime, _endFormat, CultureInfo.InvariantCulture, DateTimeStyles.None)
@@ -910,20 +928,20 @@ namespace Seq.App.EventTimeout
             }
 
             //If there are holidays, account for them
-            foreach (var unused in Holidays.Where(holiday =>
-                _startTime >= holiday.UtcStart && _startTime < holiday.UtcEnd))
+            if (Holidays.Any(holiday => _startTime >= holiday.UtcStart && _startTime < holiday.UtcEnd))
             {
                 _startTime = _startTime.AddDays(1);
-                if (_endTime < _startTime)
-                    _endTime = _endTime.AddDays(1);
-                break;
+                _endTime = _endTime.AddDays(_endTime.AddDays(1) < _startTime ? 2 : 1);
             }
 
             //If we updated holidays or this is a 24h instance, don't automatically put start time to the future
-            if (!_is24H && _startTime < utcDate && !isUpdateHolidays) _startTime = _startTime.AddDays(1);
+            if (!_is24H &&
+                (!UseTestOverrideTime && _startTime < utcDate ||
+                 UseTestOverrideTime && _startTime < TestOverrideTime.ToUniversalTime()) &&
+                !isUpdateHolidays) _startTime = _startTime.AddDays(1);
 
             if (_endTime < _startTime)
-                _endTime = _endTime.AddDays(1);
+                _endTime = _endTime.AddDays(_endTime.AddDays(1) < _startTime ? 2 : 1);
 
             LogEvent(LogEventLevel.Debug,
                 isUpdateHolidays
