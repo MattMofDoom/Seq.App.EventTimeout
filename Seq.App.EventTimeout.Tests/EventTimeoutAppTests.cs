@@ -31,24 +31,23 @@ namespace Seq.App.EventTimeout.Tests
             //Wait for a timeout
             Thread.Sleep(2000);
             Assert.True(app.IsAlert);
-            Assert.True(app.Matched == 0);
             //Log an event and validate that we are still in showtime and matching events
             var evt = Some.LogEvent();
             app.On(evt);
             Assert.True(app.IsShowtime);
             var matches = app.Matched;
-            Assert.True(app.Matched > 0);
+            Thread.Sleep(1000);
+            Assert.False(app.IsAlert);
             //Still in showtime and still matching events
             Thread.Sleep(2000);
-            app.On(evt);
-            Assert.True(app.Matched > matches);
+            Assert.True(app.IsAlert);
         }
 
         [Fact]
         public void AppTriggersTimeouts()
         {
             var app = Some.Reactor(DateTime.Now.AddSeconds(1).ToString("H:mm:ss"),
-                DateTime.Now.AddMinutes(1).ToString("H:mm:ss"), 1, 59);
+                DateTime.Now.AddMinutes(1).ToString("H:mm:ss"), 1, 1);
 
             app.Attach(TestAppHost.Instance);
             Thread.Sleep(2000);
