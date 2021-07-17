@@ -27,7 +27,6 @@ namespace Seq.App.EventTimeout.Tests
             //Wait for showtime
             Thread.Sleep(2000);
             Assert.True(app.IsShowtime);
-            Assert.False(app.IsAlert);
             //Wait for a timeout
             Thread.Sleep(2000);
             Assert.True(app.IsAlert);
