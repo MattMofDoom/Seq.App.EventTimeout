@@ -231,7 +231,7 @@ namespace Seq.App.EventTimeout.Tests
 
             Assert.True(Holidays.ValidateHolidays(new List<AbstractApiHolidays> {holiday},
                 new List<string> {"National", "Local"}, new List<string> {"Australia", "New South Wales"}, false,
-                false).Count > 0);
+                true).Count > 0);
         }
 
         [Fact]
