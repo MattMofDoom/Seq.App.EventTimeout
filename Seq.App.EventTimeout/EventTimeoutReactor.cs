@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Timers;
+using Lurgle.Dates;
+using Lurgle.Dates.Classes;
 using Seq.App.EventTimeout.Classes;
 using Seq.Apps;
 using Seq.Apps.LogEvents;
-using Lurgle.Dates;
-using Lurgle.Dates.Classes;
+
+// ReSharper disable MemberCanBePrivate.Global
 
 namespace Seq.App.EventTimeout
 {
@@ -17,6 +19,7 @@ namespace Seq.App.EventTimeout
     // ReSharper disable once UnusedType.Global
     public class EventTimeoutReactor : SeqApp, ISubscribeTo<LogEventData>
     {
+        private static readonly Dictionary<string, string> ResponderLookup = new Dictionary<string, string>();
         private string _alertDescription;
         private string _alertMessage;
         private string _apiKey;
@@ -25,15 +28,16 @@ namespace Seq.App.EventTimeout
         private string _country;
         private List<DayOfWeek> _daysOfWeek;
         private bool _diagnostics;
+        private string _dueDate;
         private string _endFormat = "H:mm:ss";
         private DateTime _endTime;
         private int _errorCount;
-        public List<DateTime> ExcludeDays;
         private List<string> _holidayMatch;
         private bool _includeApp;
-        private bool _includeBank; 
-        public List<DateTime> IncludeDays;
+        private bool _includeBank;
+        private bool _includeDescription;
         private bool _includeWeekends;
+        private string _initialTimeEstimate;
 
         private bool _is24H;
         private bool _isTags;
@@ -49,10 +53,12 @@ namespace Seq.App.EventTimeout
 
         private List<string> _localeMatch;
         private string _priority;
+        private string _projectKey;
         private Dictionary<string, string> _properties;
         private string _proxy;
         private string _proxyPass;
         private string _proxyUser;
+        private string _remainingTimeEstimate;
         private bool _repeatTimeout;
         private TimeSpan _repeatTimeoutSuppress;
         private string _responders;
@@ -68,6 +74,8 @@ namespace Seq.App.EventTimeout
         private Timer _timer;
         private bool _useHolidays;
         private bool _useProxy; // ReSharper disable MemberCanBePrivate.Global
+        public List<DateTime> ExcludeDays;
+        public List<DateTime> IncludeDays;
         public List<AbstractApiHolidays> Holidays;
         public bool IsAlert;
         public bool IsShowtime;
@@ -137,6 +145,26 @@ namespace Seq.App.EventTimeout
             HelpText = "Optional Responders property to pass for timeouts, for use with other apps.",
             IsOptional = true)]
         public string Responders { get; set; }
+
+        [SeqAppSetting(DisplayName = "Project Key for scheduled logs",
+            HelpText = "Optional Project Key property to pass for scheduled logs, for use with other apps.",
+            IsOptional = true)]
+        public string ProjectKey { get; set; }
+
+        [SeqAppSetting(DisplayName = "Initial Time Estimate for scheduled logs",
+            HelpText = "Optional Initial Time Estimate property to pass for scheduled logs, for use with other apps.",
+            IsOptional = true)]
+        public string InitialTimeEstimate { get; set; }
+
+        [SeqAppSetting(DisplayName = "Remaining Time Estimate for scheduled logs",
+            HelpText = "Optional Remaining Time Estimate property to pass for scheduled logs, for use with other apps.",
+            IsOptional = true)]
+        public string RemainingTimeEstimate { get; set; }
+
+        [SeqAppSetting(DisplayName = "Due Date for scheduled logs",
+            HelpText = "Optional Due Date property to pass for scheduled logs, for use with other apps.",
+            IsOptional = true)]
+        public string DueDate { get; set; }
 
         [SeqAppSetting(
             DisplayName = "Days of week",
@@ -216,19 +244,28 @@ namespace Seq.App.EventTimeout
 
         [SeqAppSetting(
             DisplayName = "Alert message",
-            HelpText = "Event message to raise.")]
+            HelpText =
+                "Event message to raise. Allows tokens for date parts: Day: {d}/{dd}/{ddd}/{dddd}, Month: {M}/{MM}/{MMM}/{MMMM}, Year: {yy}/{yyyy}. These are not case sensitive.")]
         public string AlertMessage { get; set; }
 
         [SeqAppSetting(
             IsOptional = true,
             DisplayName = "Alert description",
-            HelpText = "Optional description associated with the event raised.")]
+            HelpText =
+                "Optional description associated with the event raised. Allows tokens for date parts: Day: {d}/{dd}/{ddd}/{dddd}, Month: {M}/{MM}/{MMM}/{MMMM}, Year: {yy}/{yyyy}. These are not case sensitive.")]
         public string AlertDescription { get; set; }
+
+        [SeqAppSetting(
+            DisplayName = "Include description with log message",
+            HelpText =
+                "If selected, the configured description will be part of the log message. Otherwise it will only show as a log property, which can be used by other Seq apps.")]
+        public bool? IncludeDescription { get; set; } = false;
 
         [SeqAppSetting(
             IsOptional = true,
             DisplayName = "Alert tags",
-            HelpText = "Tags for the event, separated by commas.")]
+            HelpText =
+                "Tags for the event, separated by commas.  Allows tokens for date parts: Day: {d}/{dd}/{ddd}/{dddd}, Month: {M}/{MM}/{MMM}/{MMMM}, Year: {yy}/{yyyy}. These are not case sensitive.")]
         public string Tags { get; set; }
 
         [SeqAppSetting(
@@ -351,7 +388,8 @@ namespace Seq.App.EventTimeout
                         if (key.Key.Equals(property.Key, StringComparison.OrdinalIgnoreCase))
                         {
                             matchedKey = true;
-                            if (string.IsNullOrEmpty(property.Value) || !PropertyMatch.Matches(evt.Data.Properties[property.Key].ToString(),
+                            if (string.IsNullOrEmpty(property.Value) || !PropertyMatch.Matches(
+                                evt.Data.Properties[property.Key].ToString(),
                                 property.Value)) continue;
                             matches++;
                             break;
@@ -539,6 +577,12 @@ namespace Seq.App.EventTimeout
                 LogEvent(LogEventLevel.Debug, "Alert Description '{AlertDescription}' will be used ...",
                     _alertDescription);
 
+            if (IncludeDescription != null)
+                _includeDescription = (bool) IncludeDescription;
+            if (_diagnostics)
+                LogEvent(LogEventLevel.Debug, "Include Description in Log Message: '{IncludeDescription}' ...",
+                    _includeDescription);
+
             if (_diagnostics) LogEvent(LogEventLevel.Debug, "Convert Tags '{Tags}' to array ...", Tags);
 
             _tags = (Tags ?? "")
@@ -554,7 +598,62 @@ namespace Seq.App.EventTimeout
                 _priority = Priority;
 
             if (!string.IsNullOrEmpty(Responders))
-                _responders = Responders;
+            {
+                if (Responders.Contains('='))
+                {
+                    LogEvent(LogEventLevel.Debug, "Convert Responders to dictionary ...");
+                    var responderList = (Responders ?? "")
+                        .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(t => t.Trim())
+                        .ToList();
+                    foreach (var x in from responder in responderList
+                        where responder.Contains("=")
+                        select responder.Split('='))
+                    {
+                        ResponderLookup.Add(x[0], x[1]);
+                        if (_diagnostics)
+                            LogEvent(LogEventLevel.Debug, "Add mapping for {LogToken} to {Responder}", x[0], x[1]);
+                    }
+                }
+                else
+                {
+                    _responders = Responders;
+                    if (_diagnostics)
+                        LogEvent(LogEventLevel.Debug, "Set responder to {Responder}", _responders);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(ProjectKey))
+            {
+                if (_diagnostics)
+                    LogEvent(LogEventLevel.Debug, "Set Project Key to {Value}", ProjectKey);
+                _projectKey = ProjectKey;
+            }
+
+            if (!string.IsNullOrEmpty(InitialTimeEstimate) && DateTokens.ValidDateExpression(InitialTimeEstimate))
+            {
+                if (_diagnostics)
+                    LogEvent(LogEventLevel.Debug, "Set Initial Time Estimate to {Value}",
+                        DateTokens.SetValidExpression(InitialTimeEstimate));
+                _initialTimeEstimate = DateTokens.SetValidExpression(InitialTimeEstimate);
+            }
+
+            if (!string.IsNullOrEmpty(RemainingTimeEstimate) && DateTokens.ValidDateExpression(RemainingTimeEstimate))
+            {
+                if (_diagnostics)
+                    LogEvent(LogEventLevel.Debug, "Set Remaining Time Estimate to {Value}",
+                        DateTokens.SetValidExpression(RemainingTimeEstimate));
+                _remainingTimeEstimate = DateTokens.SetValidExpression(RemainingTimeEstimate);
+            }
+
+            if (!string.IsNullOrEmpty(DueDate) &&
+                (DateTokens.ValidDateExpression(DueDate) || DateTokens.ValidDate(DueDate)))
+            {
+                if (_diagnostics)
+                    LogEvent(LogEventLevel.Debug, "Set Due Date to {Value}",
+                        DateTokens.ValidDate(DueDate) ? DueDate : DateTokens.SetValidExpression(DueDate));
+                _dueDate = DateTokens.ValidDate(DueDate) ? DueDate : DateTokens.SetValidExpression(DueDate);
+            }
 
             if (_diagnostics)
                 LogEvent(LogEventLevel.Debug, "Log level {loglevel} will be used for timeouts on {Instance} ...",
@@ -624,9 +723,11 @@ namespace Seq.App.EventTimeout
                         if (IsAlert && suppressDiff.TotalSeconds < _suppressionTime.TotalSeconds) return;
 
                         //Log event
-                        LogEvent(_timeoutLogLevel,
-                            string.IsNullOrEmpty(_alertDescription) ? "{Message}" : "{Message} : {Description}",
-                            _alertMessage, _alertDescription);
+                        var message = DateTokens.HandleTokens(_alertMessage);
+                        var description = DateTokens.HandleTokens(_alertDescription);
+
+                        //Log event
+                        ScheduledLogEvent(_timeoutLogLevel, message, description);
 
                         _lastLog = timeNow;
                         IsAlert = true;
@@ -961,6 +1062,62 @@ namespace Seq.App.EventTimeout
         public Showtime GetShowtime()
         {
             return new Showtime(_startTime, _endTime);
+        }
+
+        /// <summary>
+        ///     Output a scheduled log event that always defines the Message and Description tags for use with other apps
+        /// </summary>
+        /// <param name="logLevel"></param>
+        /// <param name="message"></param>
+        /// <param name="description"></param>
+        /// <param name="token"></param>
+        private void ScheduledLogEvent(LogEventLevel logLevel, string message, string description,
+            KeyValuePair<string, string>? token = null)
+        {
+            if (_includeApp) message = "[{AppName}] -" + message;
+
+            var responder = string.Empty;
+            if (ResponderLookup.Count > 0)
+            {
+                if (token != null)
+                    foreach (var responderPair in from responderPair in ResponderLookup
+                        let tokenPair = (KeyValuePair<string, string>) token
+                        where responderPair.Key.Equals(tokenPair.Key, StringComparison.OrdinalIgnoreCase)
+                        select responderPair)
+                    {
+                        responder = responderPair.Value;
+                        break;
+                    }
+            }
+            else
+            {
+                responder = _responders;
+            }
+
+
+            if (_isTags)
+                Log.ForContext(nameof(Tags), DateTokens.HandleTokens(_tags, token)).ForContext("AppName", App.Title)
+                    .ForContext(nameof(Priority), _priority).ForContext(nameof(Responders), responder)
+                    .ForContext(nameof(InitialTimeEstimate), _initialTimeEstimate)
+                    .ForContext(nameof(RemainingTimeEstimate), _remainingTimeEstimate)
+                    .ForContext(nameof(ProjectKey), _projectKey).ForContext(nameof(DueDate), _dueDate)
+                    .ForContext("ErrorCount", _errorCount).ForContext("Message", message)
+                    .ForContext("Description", description)
+                    .Write((Serilog.Events.LogEventLevel) logLevel,
+                        string.IsNullOrEmpty(description) || !_includeDescription
+                            ? "{Message}"
+                            : "{Message} : {Description}");
+            else
+                Log.ForContext("AppName", App.Title).ForContext(nameof(Priority), _priority)
+                    .ForContext(nameof(Responders), responder).ForContext("ErrorCount", _errorCount)
+                    .ForContext(nameof(InitialTimeEstimate), _initialTimeEstimate)
+                    .ForContext(nameof(RemainingTimeEstimate), _remainingTimeEstimate)
+                    .ForContext(nameof(ProjectKey), _projectKey).ForContext(nameof(DueDate), _dueDate)
+                    .ForContext("Message", message).ForContext("Description", description)
+                    .Write((Serilog.Events.LogEventLevel) logLevel,
+                        string.IsNullOrEmpty(description) || !_includeDescription
+                            ? "{Message}"
+                            : "{Message} : {Description}");
         }
 
         /// <summary>

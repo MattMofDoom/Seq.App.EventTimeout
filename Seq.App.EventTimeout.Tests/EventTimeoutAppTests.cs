@@ -36,6 +36,7 @@ namespace Seq.App.EventTimeout.Tests
             var evt = Some.LogEvent();
             app.On(evt);
             Assert.True(app.IsShowtime);
+            // ReSharper disable once UnusedVariable
             var matches = app.Matched;
             Thread.Sleep(1000);
             Assert.False(app.IsAlert);
@@ -239,8 +240,10 @@ namespace Seq.App.EventTimeout.Tests
         public void DatesExpressed()
         {
             _testOutputHelper.WriteLine(string.Join(",",
-                Dates.GetDaysOfMonth("first,last,first weekday,last weekday,first monday", "12:00", "H:mm", DateTime.Now).ToArray()));
-            Assert.True(Dates.GetDaysOfMonth("first,last,first weekday,last weekday,first monday", "12:00", "H:mm",DateTime.Now)
+                Dates.GetDaysOfMonth("first,last,first weekday,last weekday,first monday", "12:00", "H:mm",
+                    DateTime.Now).ToArray()));
+            Assert.True(Dates
+                .GetDaysOfMonth("first,last,first weekday,last weekday,first monday", "12:00", "H:mm", DateTime.Now)
                 .Count > 0);
         }
 

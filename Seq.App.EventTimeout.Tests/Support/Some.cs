@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Seq.Apps;
 using Seq.Apps.LogEvents;
+
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable UnusedParameter.Global
 
@@ -24,8 +25,6 @@ namespace Seq.App.EventTimeout.Tests.Support
             return Uint();
         }
 
-        public abstract class ParametersMustBeNamed { }
-        
         public static Event<LogEventData> LogEvent(
             ParametersMustBeNamed _ = null,
             LogEventLevel level = LogEventLevel.Fatal,
@@ -50,10 +49,7 @@ namespace Seq.App.EventTimeout.Tests.Support
                     RenderedMessage = "Hello, world",
                     Properties = properties
                 });
-            foreach (var (key, value) in include)
-            {
-                properties.Add(key, value);
-            }
+            foreach (var (key, value) in include) properties.Add(key, value);
 
             return new Event<LogEventData>(id, EventType(), timestamp, new LogEventData
             {
@@ -79,10 +75,11 @@ namespace Seq.App.EventTimeout.Tests.Support
 
         public static Host Host()
         {
-            return new Host("https://seq.example.com", String() );
+            return new Host("https://seq.example.com", String());
         }
 
-        public static EventTimeoutReactor Reactor(string start, string end, int timeout, int suppression, string textMatch = "Event That Is Not Matchable", bool repeatTimeout = false, int timeoutSuppression = 60)
+        public static EventTimeoutReactor Reactor(string start, string end, int timeout, int suppression,
+            string textMatch = "Event That Is Not Matchable", bool repeatTimeout = false, int timeoutSuppression = 60)
         {
             return new EventTimeoutReactor
             {
@@ -102,8 +99,11 @@ namespace Seq.App.EventTimeout.Tests.Support
                 AlertDescription = "An alert has arisen!",
                 Tags = "Alert,Message",
                 IncludeApp = true
-
             };
+        }
+
+        public abstract class ParametersMustBeNamed
+        {
         }
     }
 }
