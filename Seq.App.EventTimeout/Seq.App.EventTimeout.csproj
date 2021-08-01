@@ -32,7 +32,7 @@
       - Port additional event properties from Seq.App.EventSchedule for integration with other apps
       - Log description is now optional.
     </PackageReleaseNotes>
-    <Version>1.5.0</Version>
+    <Version>1.5.1</Version>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 

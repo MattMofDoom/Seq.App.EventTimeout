@@ -258,7 +258,8 @@ namespace Seq.App.EventTimeout
         [SeqAppSetting(
             DisplayName = "Include description with log message",
             HelpText =
-                "If selected, the configured description will be part of the log message. Otherwise it will only show as a log property, which can be used by other Seq apps.")]
+                "If selected, the configured description will be part of the log message. Otherwise it will only show as a log property, which can be used by other Seq apps.",
+            IsOptional = true)]
         public bool? IncludeDescription { get; set; } = false;
 
         [SeqAppSetting(
