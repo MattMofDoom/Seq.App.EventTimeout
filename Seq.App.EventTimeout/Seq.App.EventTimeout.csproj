@@ -26,9 +26,10 @@
 - Handle same start and end time as 24h block as expected
 - Add repeat timeout suppression config to differentiate from suppression interval
 - Better handling of holiday threshold cases
-- Handle null properties when matching events</PackageReleaseNotes>
-    <Version>1.4.8</Version>
-    <!--    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>-->
+- Handle null properties when matching events
+- Update to use Lurgle.Dates</PackageReleaseNotes>
+    <Version>1.4.9</Version>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -37,21 +38,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Flurl" Version="3.0.2">
-      <GeneratePathProperty>true</GeneratePathProperty>
-      <Pack>true</Pack>
-    </PackageReference>
-    <PackageReference Include="Flurl.Http" Version="3.2.0">
-      <GeneratePathProperty>true</GeneratePathProperty>
-      <Pack>true</Pack>
-    </PackageReference>
+    <PackageReference Include="Lurgle.Dates" Version="1.0.6" />
     <PackageReference Include="Seq.Apps" Version="5.1.0" />
   </ItemGroup>
 
-  <Target Name="Flurl" AfterTargets="Build">
-    <Copy SourceFiles="$(PkgFlurl)\lib\$(TargetFramework)\Flurl.dll" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(PkgFlurl_Http)\lib\$(TargetFramework)\Flurl.Http.dll" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
-  </Target>
   <ItemGroup>
     <None Include="alert.png">
       <Pack>True</Pack>
@@ -61,9 +51,12 @@
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
-    <None Include="$(OutDir)/**/*" Exclude="$(OutDir)/$(MSBuildProjectName).dll;$(OutDir)/Seq.Apps.dll;$(OutDir)/Serilog.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
+    <None Include="$(OutDir)/**/Flurl.Http.dll;$(OutDir)/**/Flurl.dll;$(OutDir)/**/Lurgle.Dates.dll;" Exclude="$(OutDir)/$(MSBuildProjectName).dll;$(OutDir)/Seq.Apps.dll;$(OutDir)/Serilog.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
     <!--<None Include="./bin/release/$(TargetFramework)/Flurl.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
     <None Include="./bin/release/$(TargetFramework)/Flurl.Http.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />-->
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Enums\" />
   </ItemGroup>
 
 </Project>
