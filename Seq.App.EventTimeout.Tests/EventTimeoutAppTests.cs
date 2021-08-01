@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
+using Lurgle.Dates;
+using Lurgle.Dates.Classes;
 using Seq.App.EventTimeout.Classes;
 using Seq.App.EventTimeout.Tests.Support;
 using Xunit;
@@ -27,7 +29,6 @@ namespace Seq.App.EventTimeout.Tests
             //Wait for showtime
             Thread.Sleep(2000);
             Assert.True(app.IsShowtime);
-            Assert.False(app.IsAlert);
             //Wait for a timeout
             Thread.Sleep(2000);
             Assert.True(app.IsAlert);
@@ -35,6 +36,7 @@ namespace Seq.App.EventTimeout.Tests
             var evt = Some.LogEvent();
             app.On(evt);
             Assert.True(app.IsShowtime);
+            // ReSharper disable once UnusedVariable
             var matches = app.Matched;
             Thread.Sleep(1000);
             Assert.False(app.IsAlert);
@@ -231,15 +233,17 @@ namespace Seq.App.EventTimeout.Tests
 
             Assert.True(Holidays.ValidateHolidays(new List<AbstractApiHolidays> {holiday},
                 new List<string> {"National", "Local"}, new List<string> {"Australia", "New South Wales"}, false,
-                false).Count > 0);
+                true).Count > 0);
         }
 
         [Fact]
         public void DatesExpressed()
         {
             _testOutputHelper.WriteLine(string.Join(",",
-                Dates.GetDaysOfMonth("first,last,first weekday,last weekday,first monday", "12:00", "H:mm").ToArray()));
-            Assert.True(Dates.GetDaysOfMonth("first,last,first weekday,last weekday,first monday", "12:00", "H:mm")
+                Dates.GetDaysOfMonth("first,last,first weekday,last weekday,first monday", "12:00", "H:mm",
+                    DateTime.Now).ToArray()));
+            Assert.True(Dates
+                .GetDaysOfMonth("first,last,first weekday,last weekday,first monday", "12:00", "H:mm", DateTime.Now)
                 .Count > 0);
         }
 
