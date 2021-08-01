@@ -32,7 +32,7 @@
       - Port additional event properties from Seq.App.EventSchedule for integration with other apps
       - Log description is now optional.
     </PackageReleaseNotes>
-    <Version>1.4.9</Version>
+    <Version>1.5.0</Version>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
@@ -55,9 +55,7 @@
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
-    <None Include="$(OutDir)/**/Flurl.Http.dll;$(OutDir)/**/Flurl.dll;$(OutDir)/**/Lurgle.Dates.dll;"
-          Exclude="$(OutDir)/$(MSBuildProjectName).dll;$(OutDir)/Seq.Apps.dll;$(OutDir)/Serilog.dll" Pack="true"
-          PackagePath="lib/$(TargetFramework)" />
+    <None Include="$(OutDir)/**/Flurl.Http.dll;$(OutDir)/**/Flurl.dll;$(OutDir)/**/Lurgle.Dates.dll;" Exclude="$(OutDir)/$(MSBuildProjectName).dll;$(OutDir)/Seq.Apps.dll;$(OutDir)/Serilog.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
     <!--<None Include="./bin/release/$(TargetFramework)/Flurl.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
     <None Include="./bin/release/$(TargetFramework)/Flurl.Http.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />-->
   </ItemGroup>
