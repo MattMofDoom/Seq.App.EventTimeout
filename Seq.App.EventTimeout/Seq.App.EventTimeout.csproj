@@ -17,10 +17,12 @@
     <PackageIcon>alert.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReleaseNotes>- Update to use Lurgle.Dates
-      - Port additional event properties from Seq.App.EventSchedule for integration with other apps
-      - Log description is now optional.
+- Port additional event properties from Seq.App.EventSchedule for integration with other apps
+- Log description is now optional.
+- Improve appname inclusion logic
+- Consistent logging of extra properties
 </PackageReleaseNotes>
-    <Version>1.5.2</Version>
+    <Version>1.5.3</Version>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
@@ -30,7 +32,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Lurgle.Dates" Version="1.0.6" />
+    <PackageReference Include="Lurgle.Dates" Version="1.0.7" />
     <PackageReference Include="Seq.Apps" Version="5.1.0" />
   </ItemGroup>
 
