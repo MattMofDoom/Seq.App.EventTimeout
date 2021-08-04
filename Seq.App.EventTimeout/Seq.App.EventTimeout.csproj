@@ -16,23 +16,13 @@
     <PackageTags>seq-app seq event timeout alert monitoring holidays</PackageTags>
     <PackageIcon>alert.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageReleaseNotes>
-      - Set defaults for boolean properties, timeout, and suppression values
-      - Alert description is now properly optional
-      - Priority and Responders properties added for integration with other apps
-      - Moved config items for clarity
-      - Correctly deserialize AbstractAPI
-      - Add unit tests
-      - Disable reprocessing events
-      - Handle same start and end time as 24h block as expected
-      - Add repeat timeout suppression config to differentiate from suppression interval
-      - Better handling of holiday threshold cases
-      - Handle null properties when matching events
-      - Update to use Lurgle.Dates
-      - Port additional event properties from Seq.App.EventSchedule for integration with other apps
-      - Log description is now optional.
-    </PackageReleaseNotes>
-    <Version>1.5.1</Version>
+    <PackageReleaseNotes>- Update to use Lurgle.Dates
+- Port additional event properties from Seq.App.EventSchedule for integration with other apps
+- Log description is now optional.
+- Improve appname inclusion logic
+- Consistent logging of extra properties
+</PackageReleaseNotes>
+    <Version>1.5.3</Version>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
@@ -42,7 +32,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Lurgle.Dates" Version="1.0.6" />
+    <PackageReference Include="Lurgle.Dates" Version="1.0.7" />
     <PackageReference Include="Seq.Apps" Version="5.1.0" />
   </ItemGroup>
 
@@ -56,8 +46,6 @@
       <PackagePath></PackagePath>
     </None>
     <None Include="$(OutDir)/**/Flurl.Http.dll;$(OutDir)/**/Flurl.dll;$(OutDir)/**/Lurgle.Dates.dll;" Exclude="$(OutDir)/$(MSBuildProjectName).dll;$(OutDir)/Seq.Apps.dll;$(OutDir)/Serilog.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
-    <!--<None Include="./bin/release/$(TargetFramework)/Flurl.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
-    <None Include="./bin/release/$(TargetFramework)/Flurl.Http.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />-->
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Enums\" />
