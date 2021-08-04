@@ -22,7 +22,7 @@
 - Improve appname inclusion logic
 - Consistent logging of extra properties
 </PackageReleaseNotes>
-    <Version>1.5.3</Version>
+    <Version>1.5.4</Version>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
