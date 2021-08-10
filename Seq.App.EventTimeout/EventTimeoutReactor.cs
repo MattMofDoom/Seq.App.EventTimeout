@@ -152,17 +152,17 @@ namespace Seq.App.EventTimeout
         public string ProjectKey { get; set; }
 
         [SeqAppSetting(DisplayName = "Initial Time Estimate for scheduled logs",
-            HelpText = "Optional Initial Time Estimate property to pass for scheduled logs, for use with other apps.",
+            HelpText = "Optional Initial Time Estimate property to pass for scheduled logs, for use with other apps. Jira-type date expression, eg. Ww (weeks) Xd (days) Yh (hours) Zm (minutes).",
             IsOptional = true)]
         public string InitialTimeEstimate { get; set; }
 
         [SeqAppSetting(DisplayName = "Remaining Time Estimate for scheduled logs",
-            HelpText = "Optional Remaining Time Estimate property to pass for scheduled logs, for use with other apps.",
+            HelpText = "Optional Remaining Time Estimate property to pass for scheduled logs, for use with other apps. Jira-type date expression, eg. Ww (weeks) Xd (days) Yh (hours) Zm (minutes).",
             IsOptional = true)]
         public string RemainingTimeEstimate { get; set; }
 
         [SeqAppSetting(DisplayName = "Due Date for scheduled logs",
-            HelpText = "Optional Due Date property to pass for scheduled logs, for use with other apps.",
+            HelpText = "Optional Due Date property to pass for scheduled logs, for use with other apps. Date in yyyy-MM-dd format, or Jira-type date expression, eg. Ww (weeks) Xd (days) Yh (hours) Zm (minutes).",
             IsOptional = true)]
         public string DueDate { get; set; }
 
@@ -245,14 +245,14 @@ namespace Seq.App.EventTimeout
         [SeqAppSetting(
             DisplayName = "Alert message",
             HelpText =
-                "Event message to raise. Allows tokens for date parts: Day: {d}/{dd}/{ddd}/{dddd}, Month: {M}/{MM}/{MMM}/{MMMM}, Year: {yy}/{yyyy}. These are not case sensitive.")]
+                "Event message to raise. Allows tokens for date parts: Day: {d}/{dd}/{ddd}/{dddd}, Month: {M}/{MM}/{MMM}/{MMMM}, Year: {yy}/{yyyy}, or date expressions. These are not case sensitive.")]
         public string AlertMessage { get; set; }
 
         [SeqAppSetting(
             IsOptional = true,
             DisplayName = "Alert description",
             HelpText =
-                "Optional description associated with the event raised. Allows tokens for date parts: Day: {d}/{dd}/{ddd}/{dddd}, Month: {M}/{MM}/{MMM}/{MMMM}, Year: {yy}/{yyyy}. These are not case sensitive.")]
+                "Optional description associated with the event raised. Allows tokens for date parts: Day: {d}/{dd}/{ddd}/{dddd}, Month: {M}/{MM}/{MMM}/{MMMM}, Year: {yy}/{yyyy}, or date expressions. These are not case sensitive.")]
         public string AlertDescription { get; set; }
 
         [SeqAppSetting(
@@ -266,7 +266,7 @@ namespace Seq.App.EventTimeout
             IsOptional = true,
             DisplayName = "Alert tags",
             HelpText =
-                "Tags for the event, separated by commas.  Allows tokens for date parts: Day: {d}/{dd}/{ddd}/{dddd}, Month: {M}/{MM}/{MMM}/{MMMM}, Year: {yy}/{yyyy}. These are not case sensitive.")]
+                "Tags for the event, separated by commas.  Allows tokens for date parts: Day: {d}/{dd}/{ddd}/{dddd}, Month: {M}/{MM}/{MMM}/{MMMM}, Year: {yy}/{yyyy}, or date expressions. These are not case sensitive.")]
         public string Tags { get; set; }
 
         [SeqAppSetting(

@@ -21,8 +21,8 @@
 - Log description is now optional.
 - Improve appname inclusion logic
 - Consistent logging of extra properties
-</PackageReleaseNotes>
-    <Version>1.5.4</Version>
+- Allow w (weeks) in Jira-type date expressions</PackageReleaseNotes>
+    <Version>1.5.5</Version>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
@@ -32,7 +32,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Lurgle.Dates" Version="1.0.7" />
+    <PackageReference Include="Lurgle.Dates" Version="1.0.8" />
     <PackageReference Include="Seq.Apps" Version="5.1.0" />
   </ItemGroup>
 
