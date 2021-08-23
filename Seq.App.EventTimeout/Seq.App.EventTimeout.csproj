@@ -21,8 +21,9 @@
 - Log description is now optional.
 - Improve appname inclusion logic
 - Consistent logging of extra properties
-- Allow w (weeks) in Jira-type date expressions</PackageReleaseNotes>
-    <Version>1.5.5</Version>
+- Allow w (weeks) in Jira-type date expressions
+- Add optional Handlebars templates to message and description</PackageReleaseNotes>
+    <Version>1.5.6</Version>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
@@ -32,6 +33,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Handlebars.Net" Version="2.0.9" />
     <PackageReference Include="Lurgle.Dates" Version="1.0.8" />
     <PackageReference Include="Seq.Apps" Version="5.1.0" />
   </ItemGroup>
@@ -45,7 +47,7 @@
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
-    <None Include="$(OutDir)/**/Flurl.Http.dll;$(OutDir)/**/Flurl.dll;$(OutDir)/**/Lurgle.Dates.dll;" Exclude="$(OutDir)/$(MSBuildProjectName).dll;$(OutDir)/Seq.Apps.dll;$(OutDir)/Serilog.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
+    <None Include="$(OutDir)/**/Flurl.Http.dll;$(OutDir)/**/Flurl.dll;$(OutDir)/**/Lurgle.Dates.dll;$(OutDir)/**/Handlebars.dll;" Exclude="$(OutDir)/$(MSBuildProjectName).dll;$(OutDir)/Seq.Apps.dll;$(OutDir)/Serilog.dll" Pack="true" PackagePath="lib/$(TargetFramework)" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Enums\" />
