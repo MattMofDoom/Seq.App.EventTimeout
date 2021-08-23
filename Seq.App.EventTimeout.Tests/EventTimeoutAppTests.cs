@@ -28,21 +28,36 @@ namespace Seq.App.EventTimeout.Tests
             app.Attach(TestAppHost.Instance);
             //Wait for showtime
             Thread.Sleep(2000);
-            Assert.True(app.IsShowtime);
+            Assert.True(app.Counters.IsShowtime);
             //Wait for a timeout
             Thread.Sleep(2000);
-            Assert.True(app.IsAlert);
+            Assert.True(app.Counters.IsAlert);
             //Log an event and validate that we are still in showtime and matching events
             var evt = Some.LogEvent();
             app.On(evt);
-            Assert.True(app.IsShowtime);
+            Assert.True(app.Counters.IsShowtime);
             // ReSharper disable once UnusedVariable
-            var matches = app.Matched;
+            var matches = app.Counters.Matched;
             Thread.Sleep(1000);
-            Assert.False(app.IsAlert);
+            Assert.False(app.Counters.IsAlert);
             //Still in showtime and still matching events
             Thread.Sleep(2000);
-            Assert.True(app.IsAlert);
+            Assert.True(app.Counters.IsAlert);
+        }
+
+        [Fact]
+        public void RenderTemplate()
+        {
+            var app = Some.Reactor(DateTime.Now.AddSeconds(1).ToString("H:mm:ss"),
+                DateTime.Now.AddMinutes(1).ToString("H:mm:ss"), 1, 1);
+            app.UseHandlebars = true;
+            app.AlertMessage =
+                "{{AppName}}  {{TimeNow}} - {{Timeout}} Seconds - {{TimeoutMins}} Mins - {{TimeoutHours}} Hours - {dd-MM-yyyy+10m}";
+            app.Attach(TestAppHost.Instance);
+            var output = DateTokens.HandleTokens(app.MessageTemplate.Render(app.Config, app.Counters));
+            _testOutputHelper.WriteLine("Template: {0}\nOutput: {1}", app.Message, output);
+
+            Assert.DoesNotContain("{", output);
         }
 
         [Fact]
@@ -53,11 +68,11 @@ namespace Seq.App.EventTimeout.Tests
 
             app.Attach(TestAppHost.Instance);
             Thread.Sleep(2000);
-            Assert.True(app.IsShowtime);
+            Assert.True(app.Counters.IsShowtime);
             var evt = Some.LogEvent();
             app.On(evt);
             Thread.Sleep(2000);
-            Assert.True(app.IsAlert);
+            Assert.True(app.Counters.IsAlert);
         }
 
         [Fact]
@@ -140,15 +155,15 @@ namespace Seq.App.EventTimeout.Tests
                 CultureInfo.InvariantCulture, DateTimeStyles.None);
 
             var app = Some.Reactor(start.ToString("H:mm:ss"), end.ToString("H:mm:ss"), 1, 59);
-            app.TestOverrideTime = start;
-            app.UseTestOverrideTime = true;
+            app.Config.TestOverrideTime = start;
+            app.Config.UseTestOverrideTime = true;
             app.Attach(TestAppHost.Instance);
 
             for (var i = 0; i < 169; i++)
             {
                 if (i > 0)
                 {
-                    app.TestOverrideTime = app.TestOverrideTime.AddHours(1);
+                    app.Config.TestOverrideTime = app.Config.TestOverrideTime.AddHours(1);
 
                     if (i % 24 == 0)
                     {
@@ -161,12 +176,12 @@ namespace Seq.App.EventTimeout.Tests
                     "Australia - New South Wales",
                     "Local holiday", start.ToString("MM/dd/yyyy"), start.Year.ToString(),
                     start.Month.ToString(), start.Day.ToString(), start.DayOfWeek.ToString());
-                app.Holidays = new List<AbstractApiHolidays> {holiday};
+                app.Config.Holidays = new List<AbstractApiHolidays> { holiday };
 
-                app.UtcRollover(app.TestOverrideTime.ToUniversalTime(), true);
+                app.UtcRollover(app.Config.TestOverrideTime.ToUniversalTime(), true);
                 var showTime = app.GetShowtime();
                 _testOutputHelper.WriteLine("Time: {0:F}, Next ShowTime: {1:F}, Matches {2}",
-                    app.TestOverrideTime.ToUniversalTime(), showTime.Start.ToUniversalTime(),
+                    app.Config.TestOverrideTime.ToUniversalTime(), showTime.Start.ToUniversalTime(),
                     showTime.Start.ToString("F") == start.AddDays(1).ToUniversalTime().ToString("F"));
 
                 Assert.True(showTime.Start.ToString("F") == start.AddDays(1).ToUniversalTime().ToString("F"));
@@ -183,15 +198,15 @@ namespace Seq.App.EventTimeout.Tests
                 CultureInfo.InvariantCulture, DateTimeStyles.None);
 
             var app = Some.Reactor(start.ToString("H:mm:ss"), end.ToString("H:mm:ss"), 1, 59);
-            app.TestOverrideTime = start;
-            app.UseTestOverrideTime = true;
+            app.Config.TestOverrideTime = start;
+            app.Config.UseTestOverrideTime = true;
             app.Attach(TestAppHost.Instance);
 
             for (var i = 0; i < 169; i++)
             {
                 if (i > 0)
                 {
-                    app.TestOverrideTime = app.TestOverrideTime.AddHours(1);
+                    app.Config.TestOverrideTime = app.Config.TestOverrideTime.AddHours(1);
 
                     if (i % 24 == 0)
                     {
@@ -200,15 +215,15 @@ namespace Seq.App.EventTimeout.Tests
                     }
                 }
 
-                app.Holidays = new List<AbstractApiHolidays>();
+                app.Config.Holidays = new List<AbstractApiHolidays>();
 
-                app.UtcRollover(app.TestOverrideTime.ToUniversalTime());
+                app.UtcRollover(app.Config.TestOverrideTime.ToUniversalTime());
                 var showTime = app.GetShowtime();
 
-                if (start < app.TestOverrideTime)
+                if (start < app.Config.TestOverrideTime)
                 {
                     _testOutputHelper.WriteLine("Time: {0:F}, Next ShowTime: {1:F}, Matches {2}",
-                        app.TestOverrideTime.ToUniversalTime(), showTime.Start.ToUniversalTime(),
+                        app.Config.TestOverrideTime.ToUniversalTime(), showTime.Start.ToUniversalTime(),
                         showTime.Start.ToString("F") == start.AddDays(1).ToUniversalTime().ToString("F"));
                     Assert.True(showTime.Start.ToString("F") == start.AddDays(1).ToUniversalTime().ToString("F"));
                     Assert.True(showTime.End.ToString("F") == end.AddDays(1).ToUniversalTime().ToString("F"));
@@ -216,7 +231,7 @@ namespace Seq.App.EventTimeout.Tests
                 else
                 {
                     _testOutputHelper.WriteLine("Time: {0:F}, Next ShowTime: {1:F}, Matches {2}",
-                        app.TestOverrideTime.ToUniversalTime(), showTime.Start.ToUniversalTime(),
+                        app.Config.TestOverrideTime.ToUniversalTime(), showTime.Start.ToUniversalTime(),
                         showTime.Start.ToString("F") == start.ToUniversalTime().ToString("F"));
                     Assert.True(showTime.Start.ToString("F") == start.ToUniversalTime().ToString("F"));
                     Assert.True(showTime.End.ToString("F") == end.ToUniversalTime().ToString("F"));
@@ -231,8 +246,8 @@ namespace Seq.App.EventTimeout.Tests
                 "Local holiday", DateTime.Today.ToString("MM/dd/yyyy"), DateTime.Today.Year.ToString(),
                 DateTime.Today.Month.ToString(), DateTime.Today.Day.ToString(), DateTime.Today.DayOfWeek.ToString());
 
-            Assert.True(Holidays.ValidateHolidays(new List<AbstractApiHolidays> {holiday},
-                new List<string> {"National", "Local"}, new List<string> {"Australia", "New South Wales"}, false,
+            Assert.True(Holidays.ValidateHolidays(new List<AbstractApiHolidays> { holiday },
+                new List<string> { "National", "Local" }, new List<string> { "Australia", "New South Wales" }, false,
                 true).Count > 0);
         }
 
