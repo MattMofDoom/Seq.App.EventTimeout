@@ -33,7 +33,7 @@ namespace Seq.App.EventTimeout.Classes
                 { "DateNowShort", DateTime.Now.ToShortDateString() },
                 { "DateTimeNow", DateTime.Now.ToString("F") },
                 { "StartTime", counters.StartTime.ToString("F") },
-                { "EndTime", counters.StartTime.ToString("F") },
+                { "EndTime", counters.EndTime.ToString("F") },
                 { "Timeout", config.TimeOut.TotalSeconds },
                 { "TimeoutMins", config.TimeOut.TotalMinutes.ToString("N2") },
                 { "TimeoutHours", config.TimeOut.TotalHours.ToString("N2") },
