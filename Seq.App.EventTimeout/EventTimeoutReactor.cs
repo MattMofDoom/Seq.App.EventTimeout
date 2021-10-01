@@ -958,36 +958,30 @@ namespace Seq.App.EventTimeout
 
             //Day rollover, we need to ensure the next start and end is in the future
             if (!string.IsNullOrEmpty(Config.TestDate))
-                Counters.StartTime = DateTime.ParseExact(Config.TestDate + " " + StartTime,
-                    "yyyy-M-d " + Config.StartFormat,
-                    CultureInfo.InvariantCulture, DateTimeStyles.None).ToUniversalTime();
+                Counters.StartTime =
+                    Dates.ParseUtcIntervalDate(Config.TestDate, StartTime, timeFormat: Config.StartFormat);
             else if (Config.UseTestOverrideTime)
-                Counters.StartTime = DateTime
-                    .ParseExact(Config.TestOverrideTime.ToString("yyyy-M-d") + " " + StartTime,
-                        "yyyy-M-d " + Config.StartFormat,
-                        CultureInfo.InvariantCulture, DateTimeStyles.None)
-                    .ToUniversalTime();
+                Counters.StartTime =
+                    Dates.ParseUtcIntervalDate(Config.TestOverrideTime, StartTime, timeFormat: Config.StartFormat);
             else
-                Counters.StartTime = DateTime
-                    .ParseExact(StartTime, Config.StartFormat, CultureInfo.InvariantCulture, DateTimeStyles.None)
-                    .ToUniversalTime();
+                Counters.StartTime =
+                    Dates.ParseUtcIntervalDate(DateTime.Today, StartTime,
+                        timeFormat: Config.StartFormat);
 
             if (!string.IsNullOrEmpty(Config.TestDate))
-                Counters.EndTime = DateTime.ParseExact(Config.TestDate + " " + EndTime, "yyyy-M-d " + Config.EndFormat,
-                    CultureInfo.InvariantCulture, DateTimeStyles.None).ToUniversalTime();
+                Counters.EndTime = Dates.ParseUtcIntervalDate(Config.TestDate, EndTime, timeFormat: Config.EndFormat);
             else if (Config.UseTestOverrideTime)
-                Counters.EndTime = DateTime.ParseExact(Config.TestOverrideTime.ToString("yyyy-M-d") + " " + EndTime,
-                    "yyyy-M-d " + Config.EndFormat,
-                    CultureInfo.InvariantCulture, DateTimeStyles.None).ToUniversalTime();
+                Counters.EndTime =
+                    Dates.ParseUtcIntervalDate(Config.TestOverrideTime, EndTime, timeFormat: Config.EndFormat);
             else
-                Counters.EndTime = DateTime.ParseExact(EndTime, Config.EndFormat, CultureInfo.InvariantCulture,
-                        DateTimeStyles.None)
-                    .ToUniversalTime();
+                Counters.EndTime =
+                    Dates.ParseUtcIntervalDate(DateTime.Today, EndTime,
+                        timeFormat: Config.EndFormat);
 
             //Detect a 24  hour instance and handle it
             if (Counters.EndTime == Counters.StartTime)
             {
-                Counters.EndTime = Counters.EndTime.AddDays(1);
+                Counters.EndTime = GetNextEnd(GetNextEnd(1) <= Counters.StartTime ? 2 : 1);
                 Config.Is24H = true;
             }
 
@@ -995,8 +989,12 @@ namespace Seq.App.EventTimeout
             if (Config.Holidays.Any(holiday =>
                 Counters.StartTime >= holiday.UtcStart && Counters.StartTime < holiday.UtcEnd))
             {
-                Counters.StartTime = Counters.StartTime.AddDays(1);
-                Counters.EndTime = Counters.EndTime.AddDays(Counters.EndTime.AddDays(1) < Counters.StartTime ? 2 : 1);
+                Counters.StartTime = GetNextStart(Config.Holidays.Any(holiday =>
+                    GetNextStart(1) >= holiday.UtcStart && GetNextStart(1) < holiday.UtcEnd)
+                    ? 2
+                    : 1);
+
+                Counters.EndTime = GetNextEnd(GetNextEnd(1) < Counters.StartTime ? 2 : 1);
             }
 
             //If we updated holidays or this is a 24h instance, don't automatically put start time to the future
@@ -1004,10 +1002,10 @@ namespace Seq.App.EventTimeout
                 (!Config.UseTestOverrideTime && Counters.StartTime < utcDate || Config.UseTestOverrideTime &&
                     Counters.StartTime < Config.TestOverrideTime.ToUniversalTime()) &&
                 !isUpdateHolidays)
-                Counters.StartTime = Counters.StartTime.AddDays(1);
+                Counters.StartTime = GetNextStart(GetNextStart(1) < utcDate ? 2 : 1);
 
             if (Counters.EndTime < Counters.StartTime)
-                Counters.EndTime = Counters.EndTime.AddDays(Counters.EndTime.AddDays(1) < Counters.StartTime ? 2 : 1);
+                Counters.EndTime = GetNextEnd(GetNextEnd(1) < Counters.StartTime ? 2 : 1);
 
             LogEvent(LogEventLevel.Debug,
                 isUpdateHolidays
@@ -1015,6 +1013,16 @@ namespace Seq.App.EventTimeout
                     : "UTC Day Rollover, Parse {LocalStart} To Next UTC Start Time {StartTime} ({StartDayOfWeek}), Parse {LocalEnd} to UTC End Time {EndTime} ({EndDayOfWeek})...",
                 StartTime, Counters.StartTime.ToShortTimeString(), Counters.StartTime.DayOfWeek, EndTime,
                 Counters.EndTime.ToShortTimeString(), Counters.EndTime.DayOfWeek);
+        }
+
+        public DateTime GetNextStart(int addDays = 0)
+        {
+            return Dates.ParseUtcIntervalDate(Counters.StartTime.AddDays(addDays), StartTime, Config.StartFormat);
+        }
+
+        public DateTime GetNextEnd(int addDays = 0)
+        {
+            return Dates.ParseUtcIntervalDate(Counters.EndTime.AddDays(addDays), EndTime, Config.EndFormat);
         }
 
         public Showtime GetShowtime()

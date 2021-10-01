@@ -88,6 +88,7 @@ namespace Seq.App.EventTimeout.Tests
                                         DateTime.Today.AddDays(1).ToUniversalTime().ToString("F"));
             _testOutputHelper.WriteLine("Hours: " + (DateTime.Today.AddDays(1).ToUniversalTime() -
                                                      DateTime.Today.ToUniversalTime()).TotalHours);
+            _testOutputHelper.WriteLine("Is24H: {0}", app.Config.Is24H);
             Assert.True(showTime.Start == DateTime.Today.ToUniversalTime());
             Assert.True(showTime.End == DateTime.Today.AddDays(1).ToUniversalTime());
         }

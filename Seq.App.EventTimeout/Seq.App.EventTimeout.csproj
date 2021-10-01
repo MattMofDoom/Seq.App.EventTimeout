@@ -24,8 +24,9 @@
 - Allow w (weeks) in Jira-type date expressions
 - Add optional Handlebars templates to message and description
 - Fix Handlebars template
-- Update Lurgle.Dates</PackageReleaseNotes>
-    <Version>1.5.7</Version>
+- Update Lurgle.Dates
+- Address DST inconsistencies</PackageReleaseNotes>
+    <Version>1.5.8</Version>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
@@ -36,7 +37,7 @@
 
   <ItemGroup>
     <PackageReference Include="Handlebars.Net" Version="2.0.9" />
-    <PackageReference Include="Lurgle.Dates" Version="1.0.10" />
+    <PackageReference Include="Lurgle.Dates" Version="1.0.11" />
     <PackageReference Include="Seq.Apps" Version="5.1.0" />
   </ItemGroup>
 
