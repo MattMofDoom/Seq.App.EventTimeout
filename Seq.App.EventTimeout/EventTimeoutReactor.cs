@@ -26,6 +26,7 @@ namespace Seq.App.EventTimeout
         public HandlebarsTemplate DescriptionTemplate;
         public string Message;
         public HandlebarsTemplate MessageTemplate; // ReSharper disable UnusedAutoPropertyAccessor.Global
+
         // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
         [SeqAppSetting(
             DisplayName = "Diagnostic logging",
@@ -340,8 +341,8 @@ namespace Seq.App.EventTimeout
                         {
                             matchedKey = true;
                             if (string.IsNullOrEmpty(property.Value) || !PropertyMatch.Matches(
-                                evt.Data.Properties[property.Key].ToString(),
-                                property.Value)) continue;
+                                    evt.Data.Properties[property.Key].ToString(),
+                                    property.Value)) continue;
                             matches++;
                             break;
                         }
@@ -415,10 +416,10 @@ namespace Seq.App.EventTimeout
                     Config.AppName);
 
             if (!DateTime.TryParseExact(StartTime, "H:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                out _))
+                    out _))
             {
                 if (DateTime.TryParseExact(StartTime, "H:mm", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                    out _))
+                        out _))
                     Config.StartFormat = "H:mm";
                 else
                     LogEvent(LogEventLevel.Debug,
@@ -426,10 +427,10 @@ namespace Seq.App.EventTimeout
             }
 
             if (!DateTime.TryParseExact(EndTime, "H:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                out _))
+                    out _))
             {
                 if (DateTime.TryParseExact(EndTime, "H:mm", CultureInfo.InvariantCulture, DateTimeStyles.None,
-                    out _))
+                        out _))
                     Config.EndFormat = "H:mm";
                 else
                     LogEvent(LogEventLevel.Debug,
@@ -518,7 +519,7 @@ namespace Seq.App.EventTimeout
                 LogEvent(LogEventLevel.Debug, "Match criteria will be: {MatchText}",
                     PropertyMatch.MatchConditions(Config.Properties));
 
-            if (UseHandlebars != null) Config.UseHandlebars = (bool)UseHandlebars;
+            if (UseHandlebars != null) Config.UseHandlebars = (bool) UseHandlebars;
             if (Config.Diagnostics)
                 LogEvent(LogEventLevel.Debug,
                     "Use Handlebars to render Log Message and Description: '{UseHandlebars}' ...",
@@ -548,7 +549,7 @@ namespace Seq.App.EventTimeout
                 LogEvent(LogEventLevel.Debug, "Alert Description '{AlertDescription}' will be used ...",
                     Description);
 
-            if (IncludeDescription != null) Config.IncludeDescription = (bool)IncludeDescription;
+            if (IncludeDescription != null) Config.IncludeDescription = (bool) IncludeDescription;
             if (Config.Diagnostics)
                 LogEvent(LogEventLevel.Debug, "Include Description in Log Message: '{IncludeDescription}' ...",
                     Config.IncludeDescription);
@@ -556,7 +557,7 @@ namespace Seq.App.EventTimeout
             if (Config.Diagnostics) LogEvent(LogEventLevel.Debug, "Convert Tags '{Tags}' to array ...", Tags);
 
             Config.Tags = (Tags ?? "")
-                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
                 .Select(t => t.Trim())
                 .ToArray();
             if (Config.Tags.Length > 0) Config.IsTags = true;
@@ -814,13 +815,13 @@ namespace Seq.App.EventTimeout
                             Config.HolidayMatch = new List<string>();
                         else
                             Config.HolidayMatch = HolidayMatch
-                                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
                                 .Select(t => t.Trim()).ToList();
 
                         if (string.IsNullOrEmpty(LocaleMatch))
                             Config.LocaleMatch = new List<string>();
                         else
-                            Config.LocaleMatch = LocaleMatch.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                            Config.LocaleMatch = LocaleMatch.Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
                                 .Select(t => t.Trim()).ToList();
 
                         if (!string.IsNullOrEmpty(Proxy))
@@ -829,7 +830,7 @@ namespace Seq.App.EventTimeout
                             Config.Proxy = Proxy;
                             Config.BypassLocal = BypassLocal;
                             Config.LocalAddresses = LocalAddresses
-                                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
                                 .Select(t => t.Trim()).ToArray();
                             Config.ProxyUser = ProxyUser;
                             Config.ProxyPass = ProxyPass;
@@ -877,8 +878,8 @@ namespace Seq.App.EventTimeout
         private void RetrieveHolidays(DateTime localDate, DateTime utcDate)
         {
             if (Config.UseHolidays && (!Counters.IsUpdating || Counters.IsUpdating &&
-                (DateTime.Now - Counters.LastUpdate).TotalSeconds > 10 &&
-                (DateTime.Now - Counters.LastError).TotalSeconds > 10 && Counters.ErrorCount < Counters.RetryCount))
+                    (DateTime.Now - Counters.LastUpdate).TotalSeconds > 10 &&
+                    (DateTime.Now - Counters.LastError).TotalSeconds > 10 && Counters.ErrorCount < Counters.RetryCount))
             {
                 Counters.IsUpdating = true;
                 if (!string.IsNullOrEmpty(Config.TestDate))
@@ -962,21 +963,21 @@ namespace Seq.App.EventTimeout
                     Dates.ParseUtcIntervalDate(Config.TestDate, StartTime, timeFormat: Config.StartFormat);
             else if (Config.UseTestOverrideTime)
                 Counters.StartTime =
-                    Dates.ParseUtcIntervalDate(Config.TestOverrideTime, StartTime, timeFormat: Config.StartFormat);
+                    Dates.ParseUtcIntervalDate(Config.TestOverrideTime, StartTime, Config.StartFormat);
             else
                 Counters.StartTime =
                     Dates.ParseUtcIntervalDate(DateTime.Today, StartTime,
-                        timeFormat: Config.StartFormat);
+                        Config.StartFormat);
 
             if (!string.IsNullOrEmpty(Config.TestDate))
                 Counters.EndTime = Dates.ParseUtcIntervalDate(Config.TestDate, EndTime, timeFormat: Config.EndFormat);
             else if (Config.UseTestOverrideTime)
                 Counters.EndTime =
-                    Dates.ParseUtcIntervalDate(Config.TestOverrideTime, EndTime, timeFormat: Config.EndFormat);
+                    Dates.ParseUtcIntervalDate(Config.TestOverrideTime, EndTime, Config.EndFormat);
             else
                 Counters.EndTime =
                     Dates.ParseUtcIntervalDate(DateTime.Today, EndTime,
-                        timeFormat: Config.EndFormat);
+                        Config.EndFormat);
 
             //Detect a 24  hour instance and handle it
             if (Counters.EndTime == Counters.StartTime)
@@ -987,7 +988,7 @@ namespace Seq.App.EventTimeout
 
             //If there are holidays, account for them
             if (Config.Holidays.Any(holiday =>
-                Counters.StartTime >= holiday.UtcStart && Counters.StartTime < holiday.UtcEnd))
+                    Counters.StartTime >= holiday.UtcStart && Counters.StartTime < holiday.UtcEnd))
             {
                 Counters.StartTime = GetNextStart(Config.Holidays.Any(holiday =>
                     GetNextStart(1) >= holiday.UtcStart && GetNextStart(1) < holiday.UtcEnd)
@@ -1052,7 +1053,7 @@ namespace Seq.App.EventTimeout
                 .ForContext(nameof(ProjectKey), Config.ProjectKey).ForContext(nameof(DueDate), Config.DueDate)
                 .ForContext("ErrorCount", Counters.ErrorCount).ForContext("Message", DateTokens.HandleTokens(message))
                 .ForContext("Description", DateTokens.HandleTokens(description))
-                .Write((Serilog.Events.LogEventLevel)logLevel,
+                .Write((Serilog.Events.LogEventLevel) logLevel,
                     string.IsNullOrEmpty(description) || !Config.IncludeDescription
                         ? include + "{Message}"
                         : include + "{Message} : {Description}");
@@ -1078,7 +1079,7 @@ namespace Seq.App.EventTimeout
                     .ForContext(nameof(InitialTimeEstimate), Config.InitialTimeEstimate)
                     .ForContext(nameof(RemainingTimeEstimate), Config.RemainingTimeEstimate)
                     .ForContext(nameof(ProjectKey), Config.ProjectKey).ForContext(nameof(DueDate), Config.DueDate)
-                    .Write((Serilog.Events.LogEventLevel)logLevel,
+                    .Write((Serilog.Events.LogEventLevel) logLevel,
                         Config.IncludeApp ? "[{AppName}] - " + message : message, logArgs);
             else
                 Log.ForContext("AppName", Config.AppName).ForContext(nameof(Priority), Config.Priority)
@@ -1086,7 +1087,7 @@ namespace Seq.App.EventTimeout
                     .ForContext(nameof(InitialTimeEstimate), Config.InitialTimeEstimate)
                     .ForContext(nameof(RemainingTimeEstimate), Config.RemainingTimeEstimate)
                     .ForContext(nameof(ProjectKey), Config.ProjectKey).ForContext(nameof(DueDate), Config.DueDate)
-                    .Write((Serilog.Events.LogEventLevel)logLevel,
+                    .Write((Serilog.Events.LogEventLevel) logLevel,
                         Config.IncludeApp ? "[{AppName}] - " + message : message, logArgs);
         }
 
@@ -1111,7 +1112,7 @@ namespace Seq.App.EventTimeout
                     .ForContext(nameof(InitialTimeEstimate), Config.InitialTimeEstimate)
                     .ForContext(nameof(RemainingTimeEstimate), Config.RemainingTimeEstimate)
                     .ForContext(nameof(ProjectKey), Config.ProjectKey).ForContext(nameof(DueDate), Config.DueDate)
-                    .Write((Serilog.Events.LogEventLevel)logLevel, exception,
+                    .Write((Serilog.Events.LogEventLevel) logLevel, exception,
                         Config.IncludeApp ? "[{AppName}] - " + message : message, logArgs);
             else
                 Log.ForContext("AppName", Config.AppName).ForContext(nameof(Priority), Config.Priority)
@@ -1119,7 +1120,7 @@ namespace Seq.App.EventTimeout
                     .ForContext(nameof(InitialTimeEstimate), Config.InitialTimeEstimate)
                     .ForContext(nameof(RemainingTimeEstimate), Config.RemainingTimeEstimate)
                     .ForContext(nameof(ProjectKey), Config.ProjectKey).ForContext(nameof(DueDate), Config.DueDate)
-                    .Write((Serilog.Events.LogEventLevel)logLevel, exception,
+                    .Write((Serilog.Events.LogEventLevel) logLevel, exception,
                         Config.IncludeApp ? "[{AppName}] - " + message : message, logArgs);
         }
     }

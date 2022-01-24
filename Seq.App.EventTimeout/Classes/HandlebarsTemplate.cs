@@ -25,32 +25,32 @@ namespace Seq.App.EventTimeout.Classes
         private static string FormatTemplate(Func<object, string> template, TimeoutConfig config,
             TimeoutCounters counters)
         {
-            var payload = (IDictionary<string, object>)ToDynamic(new Dictionary<string, object>
+            var payload = (IDictionary<string, object>) ToDynamic(new Dictionary<string, object>
             {
-                { "AppName", config.AppName },
-                { "TimeNow", DateTime.Now.ToLongTimeString() },
-                { "DateNowLong", DateTime.Now.ToLongDateString() },
-                { "DateNowShort", DateTime.Now.ToShortDateString() },
-                { "DateTimeNow", DateTime.Now.ToString("F") },
-                { "StartTime", counters.StartTime.ToString("F") },
-                { "EndTime", counters.EndTime.ToString("F") },
-                { "Timeout", config.TimeOut.TotalSeconds },
-                { "TimeoutMins", config.TimeOut.TotalMinutes.ToString("N2") },
-                { "TimeoutHours", config.TimeOut.TotalHours.ToString("N2") },
-                { "RepeatTimeout", config.RepeatTimeout },
-                { "SuppressTime", config.SuppressionTime.TotalSeconds },
-                { "SuppressTimeMins", config.SuppressionTime.TotalMinutes.ToString("N2") },
-                { "SuppressTimeHours", config.SuppressionTime.TotalHours.ToString("N2") },
-                { "RepeatSuppressTime", config.SuppressionTime.TotalSeconds },
-                { "RepeatSuppressTimeMins", config.RepeatTimeoutSuppress.TotalMinutes.ToString("N2") },
-                { "RepeatSuppressTimeHours", config.RepeatTimeoutSuppress.TotalHours.ToString("N2") },
-                { "Tags", string.Join(",", config.Tags) },
-                { "Responders", config.Responders ?? "" },
-                { "Priority", config.Priority ?? "" },
-                { "ProjectKey", config.ProjectKey ?? "" },
-                { "DueDate", config.DueDate ?? "" },
-                { "InitialTimeEstimate", config.InitialTimeEstimate ?? "" },
-                { "RemainingTimeEstimate", config.RemainingTimeEstimate ?? "" }
+                {"AppName", config.AppName},
+                {"TimeNow", DateTime.Now.ToLongTimeString()},
+                {"DateNowLong", DateTime.Now.ToLongDateString()},
+                {"DateNowShort", DateTime.Now.ToShortDateString()},
+                {"DateTimeNow", DateTime.Now.ToString("F")},
+                {"StartTime", counters.StartTime.ToString("F")},
+                {"EndTime", counters.EndTime.ToString("F")},
+                {"Timeout", config.TimeOut.TotalSeconds},
+                {"TimeoutMins", config.TimeOut.TotalMinutes.ToString("N2")},
+                {"TimeoutHours", config.TimeOut.TotalHours.ToString("N2")},
+                {"RepeatTimeout", config.RepeatTimeout},
+                {"SuppressTime", config.SuppressionTime.TotalSeconds},
+                {"SuppressTimeMins", config.SuppressionTime.TotalMinutes.ToString("N2")},
+                {"SuppressTimeHours", config.SuppressionTime.TotalHours.ToString("N2")},
+                {"RepeatSuppressTime", config.SuppressionTime.TotalSeconds},
+                {"RepeatSuppressTimeMins", config.RepeatTimeoutSuppress.TotalMinutes.ToString("N2")},
+                {"RepeatSuppressTimeHours", config.RepeatTimeoutSuppress.TotalHours.ToString("N2")},
+                {"Tags", string.Join(",", config.Tags)},
+                {"Responders", config.Responders ?? ""},
+                {"Priority", config.Priority ?? ""},
+                {"ProjectKey", config.ProjectKey ?? ""},
+                {"DueDate", config.DueDate ?? ""},
+                {"InitialTimeEstimate", config.InitialTimeEstimate ?? ""},
+                {"RemainingTimeEstimate", config.RemainingTimeEstimate ?? ""}
             });
 
             return template(payload);
@@ -63,7 +63,7 @@ namespace Seq.App.EventTimeout.Classes
                 case IEnumerable<KeyValuePair<string, object>> dictionary:
                 {
                     var result = new ExpandoObject();
-                    var asDict = (IDictionary<string, object>)result;
+                    var asDict = (IDictionary<string, object>) result;
                     foreach (var kvp in dictionary)
                         asDict.Add(kvp.Key, ToDynamic(kvp.Value));
                     return result;
