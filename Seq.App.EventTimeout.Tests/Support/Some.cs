@@ -34,8 +34,8 @@ namespace Seq.App.EventTimeout.Tests.Support
             var timestamp = UtcTimestamp();
             var properties = new Dictionary<string, object>
             {
-                { "Who", "world" },
-                { "Number", 42 }
+                {"Who", "world"},
+                {"Number", 42}
             };
 
             if (include == null)

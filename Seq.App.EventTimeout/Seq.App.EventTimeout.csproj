@@ -26,7 +26,7 @@
 - Fix Handlebars template
 - Update Lurgle.Dates
 - Address DST inconsistencies</PackageReleaseNotes>
-    <Version>1.5.8</Version>
+    <Version>1.5.9</Version>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
@@ -36,9 +36,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Handlebars.Net" Version="2.0.9" />
-    <PackageReference Include="Lurgle.Dates" Version="1.0.11" />
-    <PackageReference Include="Seq.Apps" Version="5.1.0" />
+    <PackageReference Include="Handlebars.Net" Version="2.0.10" />
+    <PackageReference Include="Lurgle.Dates" Version="1.0.12" />
+    <PackageReference Include="Seq.Apps" Version="2021.4.0" />
   </ItemGroup>
 
   <ItemGroup>
