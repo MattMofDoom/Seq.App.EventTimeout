@@ -26,7 +26,7 @@
 - Fix Handlebars template
 - Update Lurgle.Dates
 - Address DST inconsistencies</PackageReleaseNotes>
-    <Version>1.5.8</Version>
+    <Version>1.5.9</Version>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
