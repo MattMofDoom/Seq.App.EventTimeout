@@ -27,7 +27,7 @@
 - Update Lurgle.Dates
 - Address DST inconsistencies
 - Update dependencies</PackageReleaseNotes>
-    <Version>1.5.10</Version>
+    <Version>1.5.11</Version>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
@@ -38,7 +38,7 @@
 
   <ItemGroup>
     <PackageReference Include="Handlebars.Net" Version="2.1.0" />
-    <PackageReference Include="Lurgle.Dates" Version="1.0.13" />
+    <PackageReference Include="Lurgle.Dates" Version="1.0.14" />
     <PackageReference Include="Seq.Apps" Version="2021.4.0" />
   </ItemGroup>
 
