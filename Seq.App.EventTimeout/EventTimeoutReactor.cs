@@ -497,10 +497,31 @@ namespace Seq.App.EventTimeout
             Config.IncludeDays =
                 Dates.GetUtcDaysOfMonth(IncludeDaysOfMonth, StartTime, Config.StartFormat, DateTime.Now);
             if (Config.IncludeDays.Count > 0)
+            {
                 LogEvent(LogEventLevel.Debug, "Include UTC Days of Month: {IncludeDays} ...",
                     Config.IncludeDays.ToArray());
+            }
             else
-                LogEvent(LogEventLevel.Debug, "Include UTC Days of Month: ALL ...");
+            {
+                if ((IncludeDaysOfMonth ?? "")
+                    .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(t => t.Trim())
+                    .ToArray().Length > 0)
+                {
+                    var day = DateTime.Now.AddDays(-1).Day;
+                    if (day > DateTime.DaysInMonth(DateTime.Now.Year, DateTime.Now.Month))
+                        day = DateTime.DaysInMonth(DateTime.Now.Year, DateTime.Now.Month);
+                    Config.IncludeDays =
+                        Dates.GetUtcDaysOfMonth(day.ToString(), StartTime, Config.StartFormat, DateTime.Now);
+                    LogEvent(LogEventLevel.Warning,
+                        "No valid days in configured days of month - selecting {IncludeDays} to preserve include function ...",
+                        Config.IncludeDays.ToArray());
+                }
+                else
+                {
+                    LogEvent(LogEventLevel.Debug, "Include UTC Days of Month: ALL ...");
+                }
+            }
 
             if (Config.Diagnostics)
                 LogEvent(LogEventLevel.Debug, "Validate Exclude Days of Month {ExcludeDays} ...", ExcludeDaysOfMonth);
@@ -723,8 +744,31 @@ namespace Seq.App.EventTimeout
             Config.IncludeDays =
                 Dates.GetUtcDaysOfMonth(IncludeDaysOfMonth, StartTime, Config.StartFormat, DateTime.Now);
             if (Config.IncludeDays.Count > 0)
+            {
                 LogEvent(LogEventLevel.Debug, "Include UTC Days of Month: {IncludeDays} ...",
                     Config.IncludeDays.ToArray());
+            }
+            else
+            {
+                if ((IncludeDaysOfMonth ?? "")
+                    .Split(new[] {','}, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(t => t.Trim())
+                    .ToArray().Length > 0)
+                {
+                    var day = DateTime.Now.AddDays(-1).Day;
+                    if (day > DateTime.DaysInMonth(DateTime.Now.Year, DateTime.Now.Month))
+                        day = DateTime.DaysInMonth(DateTime.Now.Year, DateTime.Now.Month);
+                    Config.IncludeDays =
+                        Dates.GetUtcDaysOfMonth(day.ToString(), StartTime, Config.StartFormat, DateTime.Now);
+                    LogEvent(LogEventLevel.Warning,
+                        "No valid days in configured days of month - selecting {IncludeDays} to preserve include function ...",
+                        Config.IncludeDays.ToArray());
+                }
+                else
+                {
+                    LogEvent(LogEventLevel.Debug, "Include UTC Days of Month: ALL ...");
+                }
+            }
 
             Config.ExcludeDays =
                 Dates.GetUtcDaysOfMonth(ExcludeDaysOfMonth, StartTime, Config.StartFormat, DateTime.Now);

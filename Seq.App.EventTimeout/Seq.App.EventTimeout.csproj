@@ -16,18 +16,21 @@
     <PackageTags>seq-app seq event timeout alert monitoring holidays</PackageTags>
     <PackageIcon>alert.png</PackageIcon>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageReleaseNotes>- Update to use Lurgle.Dates
-- Port additional event properties from Seq.App.EventSchedule for integration with other apps
-- Log description is now optional.
-- Improve appname inclusion logic
-- Consistent logging of extra properties
-- Allow w (weeks) in Jira-type date expressions
-- Add optional Handlebars templates to message and description
-- Fix Handlebars template
-- Update Lurgle.Dates
-- Address DST inconsistencies
-- Update dependencies</PackageReleaseNotes>
-    <Version>1.5.11</Version>
+    <PackageReleaseNotes>
+      - Update to use Lurgle.Dates
+      - Port additional event properties from Seq.App.EventSchedule for integration with other apps
+      - Log description is now optional.
+      - Improve appname inclusion logic
+      - Consistent logging of extra properties
+      - Allow w (weeks) in Jira-type date expressions
+      - Add optional Handlebars templates to message and description
+      - Fix Handlebars template
+      - Update Lurgle.Dates
+      - Address DST inconsistencies
+      - Update dependencies
+            - Fix Resolve error in calculating endays of month for shorter months- Resolve error in calculating days of month for shorter months
+    </PackageReleaseNotes>
+    <Version>1.5.12</Version>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
