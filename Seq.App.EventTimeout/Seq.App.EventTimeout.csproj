@@ -31,7 +31,7 @@
       - Resolve error in calculating days of month for shorter months
       - Update dependencies            
     </PackageReleaseNotes>
-    <Version>1.5.13</Version>
+    <Version>1.5.14</Version>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
@@ -41,8 +41,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Handlebars.Net" Version="2.1.2" />
-    <PackageReference Include="Lurgle.Dates" Version="1.0.15" />
+    <PackageReference Include="Handlebars.Net" Version="2.1.4" />
+    <PackageReference Include="Lurgle.Dates" Version="1.0.16" />
     <PackageReference Include="Seq.Apps" Version="2021.4.0" />
   </ItemGroup>
 
