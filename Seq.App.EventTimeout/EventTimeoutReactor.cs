@@ -997,6 +997,8 @@ namespace Seq.App.EventTimeout
         /// <param name="isUpdateHolidays"></param>
         public void UtcRollover(DateTime utcDate, bool isUpdateHolidays = false)
         {
+            if(System.Threading.Thread.CurrentThread.CurrentCulture.Name == "tr-TR")
+                CultureInfo.DefaultThreadCurrentCulture = CultureInfo.CreateSpecificCulture("en-US");
             LogEvent(LogEventLevel.Debug, "UTC Time is currently {UtcTime} ...", Config.UseTestOverrideTime
                 ? Config.TestOverrideTime.ToUniversalTime().ToShortTimeString()
                 : DateTime.Now.ToUniversalTime().ToShortTimeString());
